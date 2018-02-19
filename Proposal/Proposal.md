@@ -1,7 +1,7 @@
 \maketitle
 
 # Introdução
-Este documento pretende descrever de forma sucinta, mas completa, um projeto laboratorial para a unidade curricular de Eletrónica IV. Neste documento será descrita a proposta do projeto, incluíndo os seus objetivos, funcionalidades previstas e uma breve descrição da implementação. Será ainda indicada uma lista dos materiais necessários e discutido o enquadramento do projeto com os conteúdos programáticos de Eletrónica IV.
+Este documento pretende descrever de forma sucinta, mas completa, um projeto laboratorial para a unidade curricular de Eletrónica IV. Neste documento será descrita a proposta do projeto, incluindo os seus objetivos, funcionalidades previstas e uma breve descrição da sua implementação. Será ainda indicada uma lista dos materiais necessários e discutido o enquadramento do projeto com os conteúdos programáticos de Eletrónica IV.
 
 # Autores
 A seguinte proposta é elaborada pelos alunos da turma prática P5:
@@ -14,11 +14,11 @@ A seguinte proposta é elaborada pelos alunos da turma prática P5:
 : Dados dos alunos
 
 # Descrição sumária do projeto
-O projeto a desenvolver é um robô com tração às 2 rodas e com um _ball caster_ como terceiro ponto de apoio. Este robô terá como principais objetivos a capacidade de se deslocar de forma precisa num ambiente plano e localizar-se relativamente ao meio que o rodeia. Estas duas funcionalidades permitir-lhe-ão a resolução de labirintos semelhantes aos do concurso ["Micro-Rato"](http://microrato.ua.pt/)[^1], nos moldes definidos para a competição realizada anualmente na Universidade de Aveiro.
+O projeto a desenvolver consiste num robô com tração às 2 rodas e com um _ball caster_ como terceiro ponto de apoio. Este robô terá como principais objetivos a capacidade de se deslocar de forma precisa num ambiente plano e localizar-se relativamente ao meio que o rodeia. Estas duas funcionalidades permitir-lhe-ão a resolução de labirintos semelhantes aos do concurso ["Micro-Rato"](http://microrato.ua.pt/)[^1], nos moldes definidos para a competição realizada anualmente na Universidade de Aveiro.
 
 O robô possuirá dois modos de funcionamento distintos:
 
-1. Resolução de um labirinto autónomamente
+1. Resolução de um labirinto autonomamente
 2. Modo telecomando
 
 No 1º modo, o robô será totalmente autónomo, não possuindo comunicação para o exterior. Autonomamente deverá localizar-se num labirinto semelhante aos do concurso "Micro-Rato", descobrir o farol e deslocar-se até ele, voltando de seguida para a sua posição de partida.
@@ -87,10 +87,10 @@ O robõ possuirá as seguintes plataformas de comunicação:
 # Material Necessário
 
 # Enquadramento com os Objetivos da UC
+ 
 
 
-
-[^1]: À data da elaboração deste documento, 18 de Fevereiro de 2018, o site oficial do Micro-Rato da Universidade de Aveiro encontra-se _offline_.
+[^1]: À data da elaboração deste documento, 19 de Fevereiro de 2018, o site oficial do Micro-Rato da Universidade de Aveiro encontra-se _offline_.
 
 [^2]: A rotação segundo o centro geométrico do robô poderá não ser exata, devendo ser considerada uma rotação aproximada em torno do seu centro geométrico.
 
