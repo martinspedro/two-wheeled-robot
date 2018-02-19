@@ -39,11 +39,11 @@ O robô deverá incluir as seguintes funcionalidades
 # Implementação
 
 ## Estrutura Mecânica
-A estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrónicos envolventes).
+A estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrônicos envolventes).
 
-Na figura \ref{up_view} é apresentado um esboço da estrutura mecânica do robô, sendo também identificadas as várias zonas funcionais do robô (rodas, sistema, sensores e bateriais) e o seu posicionamento relativo[^3].
+Na figura \ref{up_view} é apresentado um esboço da estrutura mecânica do robô, sendo também identificadas as várias zonas funcionais do robô (rodas, sistema, sensores e baterias) e o seu posicionamento relativo[^3].
 
-Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua traseira um _ball caster_. As duas rodas serão movimentadas usando motores DC (com _encoders_ e _extended shaft_) eserão responsáveis pela locomoção do robô, enquanto o ball caster servirá como ponto extra de apoio.
+Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua traseira um _ball caster_. As duas rodas serão movimentadas usando motores DC (com _encoders_ e _extended shaft_) e serão responsáveis pela locomoção do robô, enquanto o ball caster servirá como ponto extra de apoio.
 
 \begin{figure}
 \centering
@@ -57,9 +57,9 @@ Como demonstra a figura \ref{up_view}, serão utilizados 5 sensores de _Time of 
 
 Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da frente do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4]. 
 
-Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerómetro, um sensor IR e um sensor de luminosidade. 
+Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR e um sensor de luminosidade. 
 
-O giroscópio/acelerómetro será integrado num módulo capaz de indicar a posição absoluta do robô relativamente à sua posição inicial. O sensor de IR será utilizado para implementar o controlo remoto do robô e o sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF.
+O giroscópio/acelerômetro será integrado num módulo capaz de indicar a posição absoluta do robô relativamente à sua posição inicial. O sensor de IR será utilizado para implementar o controlo remoto do robô e o sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF.
 
 
 ## Módulo de Distribuição de Potência
@@ -72,10 +72,10 @@ Adicionalmente serão também implementados três circuitos de proteção/monito
 3. Proteção contra _stall_ dos motores
 
 ## Módulo de Comunicação 
-O robõ possuirá as seguintes plataformas de comunicação:
+O robô possuirá as seguintes plataformas de comunicação:
 
 1. Comando IV _(apenas no modo de funcionamento 2)_
-2. Porta Série (entre o computador e o micro-controlador)
+2. Porta Série (entre o computador e o microcontrolador)
 3. LEDs (em ambos os modos, providenciando _feedback_ visual)
 
 
