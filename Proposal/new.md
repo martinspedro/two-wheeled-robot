@@ -7,7 +7,7 @@ Este documento pretende descrever de forma sucinta, mas completa, um projeto lab
 O projeto a desenvolver consiste num robô com tração às 2 rodas e com um _ball caster_[^1] como terceiro ponto de apoio. Este robô terá como principal objetivo a capacidade de se deslocar em 2 dimensões num ambiente controlado, sem embater em nenhum obstáculo.
 
 ## Funcionalidades
-O robô deverá possuir as seguintes funcionalidades: 
+O robô deverá possuir as seguintes funcionalidades:
 
 - Deslocar-se segundo um dos seus eixos coordenados;
 - Rodar em torno do seu centro geométrico[^2];
@@ -16,7 +16,7 @@ O robô deverá possuir as seguintes funcionalidades:
 - Comunicação com o computador, usando uma interface por linha série.
 
 # Implementação
- 
+
 ## Estrutura Mecânica
 A estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrônicos envolventes).
 
@@ -45,7 +45,7 @@ Na figura \ref{up_view}, os números representam as seguintes entidades funciona
 ## Visão global do funcionamento do sistema
 O diagrama de instrumentação de nível 0 é apresentado na imagem \ref{diagram0}.
 
-O funcionamento do robô pode ser descrito, de forma sucinta, da seguinte forma: primeiro, o robô recebe comandos do utilizador, tais como, distância a percorrer, velocidade, direção e sentido do movimento, e posteriorment à sua interpretação, irá atuar nos motores para realizar a ação especificada. 
+O funcionamento do robô pode ser descrito, de forma sucinta, da seguinte forma: primeiro, o robô recebe comandos do utilizador, tais como, distância a percorrer, velocidade, direção e sentido do movimento, e posteriorment à sua interpretação, irá atuar nos motores para realizar a ação especificada.
 
 Além disso, ao longo de todo o processo, irá proporcionar _feedback_ do estado da sua operação de forma luminosa (LEDs) e por mensagem para o utilizador, usando a interface pc-microcontrolador.
 
@@ -68,6 +68,22 @@ O módulo de locomoção do robô é responsável pelo movimento do robô desde 
 
 
 # Material Necessário
+  - PIC32MX
+  - Motores
+  - Bola de Apoio
+  - Rodas
+  - H-bridge
+  - Encoders
+  - MPU6050
+  - VL53L0X TOF Distance sensor
+  - 2 Li-Ion cell - 16850
+  - Suporte bateria
+  - Regulador de Tensão
+  - Adaptador USB-Serial
+  - LEDs smd
+  - Botões
+  - Resistências e outros componentes
+
 
 # Enquadramento com os objetivos de E4
 
