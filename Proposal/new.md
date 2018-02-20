@@ -52,20 +52,43 @@ Além disso, ao longo de todo o processo, irá proporcionar _feedback_ do estado
 ![Diagrama de blocos de nível 0\label{diagram0}](images/diagram_level_0.png)
 
 ## Instrumentação
-O diagrama de blocos de nível 1 pode ser consultado na imagem \ref{diagram1}.
+O diagrama de blocos de nível 1 pode ser consultado na imagem \ref{diagram1}. Neste diagrama são identificados os sensores previstos para este projeto e os atuadores. Os sensores usados são:
 
-Os sensores de obstáculos serão . Estes sensores serão colocados estrategicamente na superfície lateral do robô para detetar obstáculos e permitir a navegação num ambiente 2D controlado e adequado às dimensões físicas do robô.
+- Sensores de Obstáculos
+- Giroscópio/Acelerómetro
+- Monitorização do consumo de corrente dos motores
+- Encoders
 
-Será ainda utilizado, apesar de não representado no esboço (figura \ref{up_view}), um giroscópio/acelerômetro. Este será integrado num módulo capaz de indicar a posição e orientação do robô relativamente à sua posição inicial, sendo também utilizado para auxiliar a locomoção do mesmo.
+e os atuadores serão apenas os motores.
 
-![Diagrama de blocos de nível 1 \label{diagram1}](images/diagram_level_1.png)
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{images/diagram_level_1.png}
+\caption{Diagrama de blocos de nível 1}
+\label{diagram1}
+\end{figure}
 
-## Localização
+
+### Sensor de obstáculos
+Os sensores de obstáculos serão serão colocados estrategicamente na superfície lateral do robô para permitir uma detetação eficiente de obstáculos e permitir a navegação num ambiente 2D controlado e adequado às dimensões físicas do robô.
+A cadeia de instumentação deste sensor pode ser consultada na figura \ref{cadeia_obs}. Nesta cadeia o sensor de obstáculos comunicará com microcontrolador através de usando um mecanismo de pedido/envio de daods, através do protocolo I2C, sendo esses dados posteriormente tratados por _software_ a desenvolver para efetuar a transdução para uma distância.
+
+![Cadeia de instrumentação prevista para o sensor de obstáculos \label{cadeia_obs}](images/diagramas_instrumentacao_obstacle_sensor.png) 
+
+### Giroscópio/Acelerómetro
+Apesar de não representado no esboço (figura \ref{up_view}), será utilizado um giroscópio/acelerômetro. Este sensor será integrado num módulo que se pretende capaz de indicar a posição e orientação do robô relativamente à sua posição e orientação inicial, fornecendo informação que será usada para auxiliar a locomoção do robô.
+
+A cadeia de instrumentação, representada na figura \ref{cadeia_gyro}, evidencia o protocolo de comunicação a ser usado com o sensor, I2C, e que os dados serão posteriormente tratados em _software_, para serem posteriormente utilizados no algoritmo de controlo do robô.
 
 
-## Locomoção
-O módulo de locomoção do robô é responsável pelo movimento do robô desde a posição atual até à posição de destino.
+![Cadeia de instrumentação prevista para o giroscópio/acelerómetro \label{cadeia_gyro}](images/diagramas_instrumentacao_gyroscope.png) 
 
+### Monitorização de sobre corrente nos motores
+Este sensor tem como funcionalidade garantir que a corrente nos motores, devido a fenónemos de _stall_, não ultrapassa valores considerados seguros, evitando a possível destruição dos motores. A cadeia de instrumentação é representada na figura \ref{cadeia_curr}. 
+
+O sinal elétrico que contém a informação da corrente é de reduzida excursão (no máximo algumas dezenas de miliVolt), sendo necessário acondicionar de forma adequada, como demonstrado na imagem, para puder extrair informação relevante.
+
+![Cadeia de instrumentação prevista para o giroscópio/acelerómetro \label{cadeia_curr}](images/diagramas_instrumentacao_current_monitoring.png )
 
 # Material Necessário
 
@@ -76,3 +99,5 @@ O módulo de locomoção do robô é responsável pelo movimento do robô desde 
 [^2]: A rotação segundo o centro geométrico do robô poderá não ser exata, devendo ser considerada uma rotação aproximada em torno do seu centro geométrico.
 
 [^3]: Esta imagem deve ser analisada considerando que representa apenas um esboço da estrutura do robô, com o intuito de facilitar a visualização dos assuntos descritos no texto. A imagem não deve ser entendida como uma versão preliminar da estrutura, mas apenas como uma "ideia" do que poderá virá a ser.
+
+
