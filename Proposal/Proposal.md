@@ -55,9 +55,9 @@ Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua t
 ## Instrumentação
 Como demonstra a figura \ref{up_view}, serão utilizados 5 sensores de _Time of Flight (TOF)_. Estes sensores serão colocados estrategicamente na superfície lateral do robô para, através dos dados adquiridos, permitirem a reconstrução de um ambiente 2D adequado ao posicionamento relativo do robô dentro de um espaço delimitado por paredes, semelhante a um labirinto do concurso "Micro-Rato".
 
-Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da frente do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4]. 
+Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da frente do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4].
 
-Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR e um sensor de luminosidade. 
+Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR e um sensor de luminosidade.
 
 O giroscópio/acelerômetro será integrado num módulo capaz de indicar a posição absoluta do robô relativamente à sua posição inicial. O sensor de IR será utilizado para implementar o controlo remoto do robô e o sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF.
 
@@ -71,7 +71,7 @@ Adicionalmente serão também implementados três circuitos de proteção/monito
 2. Monitorização da tensão da bateria;
 3. Proteção contra _stall_ dos motores
 
-## Módulo de Comunicação 
+## Módulo de Comunicação
 O robô possuirá as seguintes plataformas de comunicação:
 
 1. Comando IV _(apenas no modo de funcionamento 2)_
@@ -85,9 +85,26 @@ O robô possuirá as seguintes plataformas de comunicação:
 
 
 # Material Necessário
+  - PIC32MX
+  - Motores
+  - Bola de Apoio
+  - Rodas
+  - H-bridge
+  - Encoders
+  - MPU6050
+  - VL53L0X TOF Distance sensor
+  - 2 Li-Ion cell - 16850
+  - Suporte bateria
+  - Regulador de Tensão
+  - Adaptador USB-Serial
+  - LEDs smd
+  - Botões
+  - Resistências e outros componentes
+  -
+
 
 # Enquadramento com os Objetivos da UC
- 
+
 
 
 [^1]: À data da elaboração deste documento, 19 de Fevereiro de 2018, o site oficial do Micro-Rato da Universidade de Aveiro encontra-se _offline_.
