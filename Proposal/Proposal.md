@@ -27,7 +27,7 @@ No 2º modo, o robô deverá permitir ser controlado remotamente por um comando 
 
 
 ## Funcionalidades
-O robô deverá incluir as seguintes funcionalidades: 
+O robô deverá incluir as seguintes funcionalidades:
 
 - Deslocar-se segundo um dos seus eixos coordenados;
 - Rodar em torno do seu centro geométrico[^2];
@@ -38,7 +38,7 @@ O robô deverá incluir as seguintes funcionalidades:
 - Detetar superfícies brancas e pretas na superfície de deslocamento.
 
 # Implementação
- 
+
 ## Estrutura Mecânica
 A  estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrônicos envolventes).
 
@@ -56,15 +56,15 @@ Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua t
 ## Instrumentação
 Como demonstra a figura \ref{up_view}, serão utilizados 5 sensores de _Time of Flight (TOF)_. Estes sensores serão colocados estrategicamente na superfície lateral do robô para detetar obstáculos. Estes sensores, através dos dados adquiridos, permitirão a navegação num ambiente 2D adequado ao posicionamento relativo do robô dentro de um espaço delimitado por paredes, semelhante a um labirinto do concurso "Micro-Rato".
 
-Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da zona frontal do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4]. 
+Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da zona frontal do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4].
 
-Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR[^5] e um sensor de luminosidade. 
+Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR[^5] e um sensor de luminosidade.
 
 O giroscópio/acelerômetro será integrado num módulo capaz de indicar a posição do robô relativamente à sua posição inicial. Este sensor será também utilizado para auxiliar a locomoção do robô.
 
-O sensor IR (**I**nfra**R**ed) será utilizado para efetuar a comunicação com o operador, através do (envio e receção de instruções, usando um comando infravermelho, permitindo assim o controlo remoto do robô.
+Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da frente do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4].
 
-O sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF e pelos sensores de linha, ao fornecer uma medida da luminosidade ambiente que possibilite a compensão dos valores medidos pelos sensores de TOF e pelos sensores de linha.
+Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR e um sensor de luminosidade.
 
 __TODO__ Rever clareza do documento
 __TODO__ Rever imagem
@@ -84,7 +84,7 @@ Adicionalmente serão também implementados três circuitos de proteção/monito
 2. Monitorização da tensão da bateria;
 3. Limitação de corrente nos motores e alerta de _stall_
 
-## Módulo de Comunicação 
+## Módulo de Comunicação
 O robô possuirá as seguintes plataformas de comunicação:
 
 1. Comando IV _(apenas no modo de funcionamento 2)_
@@ -98,11 +98,28 @@ O robô possuirá as seguintes plataformas de comunicação:
 
 
 # Material Necessário
+  - PIC32MX
+  - Motores
+  - Bola de Apoio
+  - Rodas
+  - H-bridge
+  - Encoders
+  - MPU6050
+  - VL53L0X TOF Distance sensor
+  - 2 Li-Ion cell - 16850
+  - Suporte bateria
+  - Regulador de Tensão
+  - Adaptador USB-Serial
+  - LEDs smd
+  - Botões
+  - Resistências e outros componentes
+  -
+
 
 # Enquadramento com os Objetivos da UC
- 
 
-# 
+
+#
 [^1]: À data da elaboração deste documento, 19 de Fevereiro de 2018, o site oficial do Micro-Rato da Universidade de Aveiro encontra-se _offline_.
 
 [^2]: A rotação segundo o centro geométrico do robô poderá não ser exata, devendo ser considerada uma rotação aproximada em torno do seu centro geométrico.
@@ -111,5 +128,4 @@ O robô possuirá as seguintes plataformas de comunicação:
 
 [^4]: O farol representa a meta, sendo o fim do labirinto, num labirinto semelhante aos usados na competição "Micro-Rato", nas condições em que é realizado na Universidade de Aveiro
 
-[^5]: 
-
+[^5]:
