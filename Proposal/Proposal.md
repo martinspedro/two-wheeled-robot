@@ -18,32 +18,33 @@ O projeto a desenvolver consiste num robô com tração às 2 rodas e com um _ba
 
 O robô possuirá dois modos de funcionamento distintos:
 
-1. Resolução de um labirinto autonomamente
-2. Modo telecomando
+1. Resolução de um labirinto
+2. Modo "telecomandado"
 
-No 1º modo, o robô será totalmente autónomo, não possuindo comunicação para o exterior. Autonomamente deverá localizar-se num labirinto semelhante aos do concurso "Micro-Rato", descobrir o farol e deslocar-se até ele, voltando de seguida para a sua posição de partida.
+No 1º modo, o robô não possuirá comunicação com o exterior e deverá, por si só, resolver um labirinto semelhante aos do concurso "Micro-Rato", descobrindo o farol e deslocando-se até ele, voltando de seguida para a sua posição de partida.
 
-No 2º modo, o robô deverá permitir ser controlado remotamente por um comando infravermelhos, quer recebendo coordenadas para onde se deslocar, quer recebendo instruções genéricas, tais como: `andar para a frente`, `virar à direita`, `parar`, etc.
+No 2º modo, o robô deverá permitir ser controlado remotamente por um comando infravermelhos, quer recebendo coordenadas para onde se deslocar, quer recebendo instruções genéricas, tais como: _andar para a frente_, _virar à direita_, _parar_, etc.
 
 
 ## Funcionalidades
-O robô deverá incluir as seguintes funcionalidades
+O robô deverá incluir as seguintes funcionalidades: 
 
-- Deslocar-se segundo um dos eixos coordenados
-- Rodar em torno do seu centro geométrico[^2]
-- Mapear o espaço envolvente, caso esteja inserido num labirinto com as condições da competição "Micro-Rato"
-- Monitorizar a sua bateria
-- Detetar obstáculos
-- Monitorizar e atuar caso os motores entrem em _stall_
+- Deslocar-se segundo um dos seus eixos coordenados;
+- Rodar em torno do seu centro geométrico[^2];
+- Mapear o espaço envolvente, caso esteja inserido num labirinto com as condições da competição "Micro-Rato";
+- Monitorizar a sua bateria;
+- Detetar obstáculos;
+- Monitorizar e atuar caso os motores entrem em _stall_;
+- Detetar superfícies brancas e pretas na superfície de deslocamento.
 
 # Implementação
-
+ 
 ## Estrutura Mecânica
-A estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrônicos envolventes).
+A  estrutura mecânica, a ser construída, terá a forma circular e permitirá suportar toda a estrutura de locomoção, as baterias, os vários sensores e o sistema do robô (microcontrolador + circuitos eletrônicos envolventes).
 
-Na figura \ref{up_view} é apresentado um esboço da estrutura mecânica do robô, sendo também identificadas as várias zonas funcionais do robô (rodas, sistema, sensores e baterias) e o seu posicionamento relativo[^3].
+Na figura \ref{up_view} é apresentado um esboço da estrutura mecânica do robô, sendo também identificadas as várias zonas funcionais do mesmo (rodas, sistema, sensores e baterias), bem como o seu posicionamento relativo[^3].
 
-Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua traseira um _ball caster_. As duas rodas serão movimentadas usando motores DC (com _encoders_ e _extended shaft_) e serão responsáveis pela locomoção do robô, enquanto o ball caster servirá como ponto extra de apoio.
+Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua traseira um _ball caster_. As duas rodas serão movimentadas usando motores DC (com _encoders_ e _extended shaft_) e serão responsáveis pela locomoção enquanto o ball caster servirá como ponto extra de apoio.
 
 \begin{figure}
 \centering
@@ -53,23 +54,35 @@ Como mostra a figura, na lateral do robô serão colocadas duas rodas e na sua t
 \end{figure}
 
 ## Instrumentação
-Como demonstra a figura \ref{up_view}, serão utilizados 5 sensores de _Time of Flight (TOF)_. Estes sensores serão colocados estrategicamente na superfície lateral do robô para, através dos dados adquiridos, permitirem a reconstrução de um ambiente 2D adequado ao posicionamento relativo do robô dentro de um espaço delimitado por paredes, semelhante a um labirinto do concurso "Micro-Rato".
+Como demonstra a figura \ref{up_view}, serão utilizados 5 sensores de _Time of Flight (TOF)_. Estes sensores serão colocados estrategicamente na superfície lateral do robô para detetar obstáculos. Estes sensores, através dos dados adquiridos, permitirão a navegação num ambiente 2D adequado ao posicionamento relativo do robô dentro de um espaço delimitado por paredes, semelhante a um labirinto do concurso "Micro-Rato".
 
-Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da frente do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4]. 
+Para além dos sensores de TOF, será ainda utilizado um sensor de linha, posicionado na parte inferior da zona frontal do robô, com a função de detetar uma zona preta na superfície onde o robô se desloca, que simboliza o farol[^4]. 
 
-Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR e um sensor de luminosidade. 
+Serão ainda utilizados, apesar de não representados no esboço (figura \ref{up_view}), um giroscópio/acelerômetro, um sensor IR[^5] e um sensor de luminosidade. 
 
-O giroscópio/acelerômetro será integrado num módulo capaz de indicar a posição absoluta do robô relativamente à sua posição inicial. O sensor de IR será utilizado para implementar o controlo remoto do robô e o sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF.
+O giroscópio/acelerômetro será integrado num módulo capaz de indicar a posição do robô relativamente à sua posição inicial. Este sensor será também utilizado para auxiliar a locomoção do robô.
 
+O sensor IR (**I**nfra**R**ed) será utilizado para efetuar a comunicação com o operador, através do (envio e receção de instruções, usando um comando infravermelho, permitindo assim o controlo remoto do robô.
+
+O sensor de luminosidade servirá para melhorar a qualidade das leituras efetuadas pelos sensores de TOF e pelos sensores de linha, ao fornecer uma medida da luminosidade ambiente que possibilite a compensão dos valores medidos pelos sensores de TOF e pelos sensores de linha.
+
+__TODO__ Rever clareza do documento
+__TODO__ Rever imagem
+__TODO__ Remover a presença no Microrato
+
+### Diagramas de Instrumentação
+![Diagrama de Instrumentação de Nível 0](images/diagram_level_0.png)
+
+![Diagrama de Instrumentação de Nível 1](images/diagram_level_1.png)
 
 ## Módulo de Distribuição de Potência
-O robô incorporará a sua própria fonte de energia, usando baterias LIPO. Adjacente a este módulo (não representado na figura) existirá um circuito de distribuição de potência, que será responsável por fornecer as diferentes tensões e correntes necessárias aos vários módulos existentes no robô.
+O robô incorporará a sua própria fonte de energia, usando baterias Li-Ion. Adjacente a este módulo (não representado na figura) existirá um circuito de distribuição de potência, que será responsável por fornecer as diferentes tensões e correntes  necessárias aos vários módulos existentes no robô.
 
 Adicionalmente serão também implementados três circuitos de proteção/monitorização:
 
 1. Circuito de proteção contra curto-circuito na alimentação do circuitos de baixa potência
 2. Monitorização da tensão da bateria;
-3. Proteção contra _stall_ dos motores
+3. Limitação de corrente nos motores e alerta de _stall_
 
 ## Módulo de Comunicação 
 O robô possuirá as seguintes plataformas de comunicação:
@@ -89,11 +102,14 @@ O robô possuirá as seguintes plataformas de comunicação:
 # Enquadramento com os Objetivos da UC
  
 
-
+# 
 [^1]: À data da elaboração deste documento, 19 de Fevereiro de 2018, o site oficial do Micro-Rato da Universidade de Aveiro encontra-se _offline_.
 
 [^2]: A rotação segundo o centro geométrico do robô poderá não ser exata, devendo ser considerada uma rotação aproximada em torno do seu centro geométrico.
 
 [^3]: Esta imagem deve ser analisada considerando que representa apenas um esboço da estrutura do robô, com o intuito de facilitar a visualização dos assuntos descritos no texto. A imagem não deve ser entendida como uma versão preliminar da estrutura, mas apenas como uma "ideia" do que poderá virá a ser.
 
-[^4]: O farol representa a meta, sendo o fim do labirinto, num labirinto semelhante aos usados na competição "Micro-Rato", nas condições em que é realizada na Universidade de Aveiro,
+[^4]: O farol representa a meta, sendo o fim do labirinto, num labirinto semelhante aos usados na competição "Micro-Rato", nas condições em que é realizado na Universidade de Aveiro
+
+[^5]: 
+
