@@ -60,11 +60,11 @@ Será ainda utilizado, apesar de não representado no esboço (figura \ref{up_vi
 
 ![Diagrama de blocos de nível 1 \label{diagram1}](images/diagram_level_1.png)
 
-## Localização
+## Controlo
+O controlo do motores será realizado partindo da conjugação dos dados dos encoders com os dados do giroscópio/acelerômetro. Os dados dos encoders serão realimentados a um algoritmo de controlo que fará os ajustes necessários de forma a que os motores rodem às velocidades especificadas inicialmente.
 
+A utilização do giroscópio/acelerômetro permitirá uma localização mais precisa e possivelmente corrigir erros derivados da estrutura mecânica (rotação sobre o centro geométrico, drift devido a desalinhamento das rodas) que a utlização apenas de encoders não permitiria resolver. Estes dados serão também fornecidos ao algoritmo de controlo que fará os motores rodar.
 
-## Locomoção
-O módulo de locomoção do robô é responsável pelo movimento do robô desde a posição atual até à posição de destino.
 
 
 # Material Necessário
