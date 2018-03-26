@@ -55,6 +55,8 @@ extern "C" {
 // #pragma config statements should precede project file includes.
 // Use project enums instead of #define for ON and OFF.
 
+#include <xc.h>
+
 
 #ifdef	__cplusplus
 }
