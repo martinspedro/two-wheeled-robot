@@ -5,11 +5,13 @@
  * Created on March 13, 2018, 11:15 AM
  */
 
+
+
 #include <xc.h>
+#include "../global.h"
 #include "uart1.h"
 
-#define SYSCLK  80000000L // System clock frequency, in Hz
-#define PBCLOCK 40000000L // Peripheral Bus Clock frequency, in Hz
+
 
 #define UART_ERROR   1
 #define UART_SUCCESS 0
@@ -26,6 +28,11 @@
 #define IS_UART1_RX_IDDLE U1STAbits.RIDLE
 #define UART1_RX_HAS_DATA U1STAbits.URXDA
 
+#define PARITY_ERROR_OCCURRED  U1STAbits.PERR
+#define FRAMING_ERROR_OCCURRED U1STAbits.FERR
+#define OVERRUN_ERROR_OCCURRED U1STAbits.OERR
+
+#define RESET_OVERRUN_ERROR_FLAG {U1STAbits.OERR = 0;}
 
 #define DEFAULT_BAUDRATE 115200
 #define MIN_BAUDRATE     600
@@ -35,6 +42,8 @@
 #define DEFAULT_DATA_BITS 8
 
 #define DISABLE_UART1    {U1MODEbits.ON = 0;}     // Disable UART 1
+
+
 
 /* @brief UART Configuration Function
  * The baudrate equation is given by: 
@@ -76,7 +85,7 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
     /* Baud-Rate value for the Baud Rate Divisor bits register
      *
      */
-    U1BRG = 259; //(uint16_t) (PBCLOCK / (16 * baudrate) - 1 );
+    U1BRG = (uint16_t) (PBCLK / (16 * baudrate) - 1 );
 
     
     /* Set parity and data selection bits
@@ -114,8 +123,8 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
       *   1 = 2 Stop bits
       *   0 = 1 Stop bit
       */
-    U1MODEbits.STSEL = 0;
-    U1MODEbits.PDSEL = 0b00; 
+    U1MODEbits.STSEL =  stop_bits - 1;
+    
     /***************************************************************************
     *                        GENERAL SETUP 
     ***************************************************************************/
@@ -140,7 +149,7 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      *   1 = UxRTS pin is in Simplex mode
      *   0 = UxRTS pin is in Flow Control mode
      */
-    U1MODEbits.RTSMD = 1;     
+    U1MODEbits.RTSMD = 0;     
     
     
     /* Enable UxTX & UxRX and disable the usage of UxCTS, UxRTS pins
@@ -154,7 +163,7 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      *  00 = UxTX and UxRX pins are enabled and used; UxCTS and UxRTS/UxBCLK pins are controlled by
      *       corresponding bits in the PORTx register
      */
-    U1MODEbits.UEN = 0b01;
+    U1MODEbits.UEN = 0b00;
     
     /* Disable Wake-up through UART
      * 
@@ -203,12 +212,12 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
  */
 void enable_UART1(void){
     ENABLE_UART1_TX;
-    U1STAbits.URXEN = 1;
+    ENABLE_UART1_RX;
     ENABLE_UART1; 
 }
 
 
-/* @brief UART send char function
+/* @brief Blocking UART send char function
  * @author Pedro Martins
  * 
  * Verifies if the UART TX buffer is not full and then sends a character using 
@@ -218,45 +227,34 @@ void enable_UART1(void){
 uint8_t send_char(unsigned char c){
     while(IS_UART1_TX_FULL);
     
-        U1TXREG = c;
-        return UART_SUCCESS;
-    
-    //else
-    //    return UART_ERROR;
+    U1TXREG = c;
+    return UART_SUCCESS;
 }
 
-/* @brief UART send char function
+/* @brief Blocking UART read char function
  * @author Pedro Martins
  * 
- * Verifies if the UART TX buffer is not full and then sends a character using 
+ * Waits while UART RX buffer does not have data and then reads a character using 
  * the UART1 module
+ * 
+ * @TODO: Implement error verification features and inform to caller an error as occured
  * 
  */
 unsigned char read_char(void){
-    unsigned char aux;
-    send_char('c');
-    if(U1STAbits.RIDLE)
-        send_char('R');
-    if(U1STAbits.FERR)
-        send_char('F');
-    if(U1STAbits.OERR)
-        send_char('O');
-    if(U1STAbits.URXDA)
-        send_char('D');
+    unsigned char c;
     
-    while(U1STAbits.RIDLE);
     
-    if(U1STAbits.OERR == 1)
+    while(!UART1_RX_HAS_DATA);
+    
+    if(OVERRUN_ERROR_OCCURRED)
     {
-        aux = U1RXREG;
-        U1STAbits.OERR = 0;
+        c = U1RXREG;
+        RESET_OVERRUN_ERROR_FLAG
     }
     else
-        aux = U1RXREG;
-    return aux;
-
-}
-
-uint8_t can_read_UART1(){
-    return UART1_RX_HAS_DATA;
+    {
+        c = U1RXREG;
+    }
+    
+    return c;
 }
