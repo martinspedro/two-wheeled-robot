@@ -30,8 +30,8 @@ extern "C" {
 // DEVCFG2
 #pragma config FPLLIDIV = DIV_2         // PLL Input Divider (2x Divider)
 #pragma config FPLLMUL = MUL_20         // PLL Multiplier (20x Multiplier)
-#pragma config UPLLIDIV = DIV_2         // USB PLL Input Divider (2x Divider)
-#pragma config UPLLEN = ON              // USB PLL Enable (Enabled)
+#pragma config UPLLIDIV = DIV_1         // USB PLL Input Divider (2x Divider)
+#pragma config UPLLEN = OFF             // USB PLL Enable (Enabled)
 #pragma config FPLLODIV = DIV_1         // System PLL Output Clock Divider (PLL Divide by 1)
 
 // DEVCFG1
