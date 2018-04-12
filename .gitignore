@@ -1,0 +1,20 @@
+# pdfs
+*.pdf
+
+# vim swap files
+*.swp *.swo
+
+# Compressed files
+*.tar *.zip *.rar
+
+/UART.X/nbproject/private/
+/uart.X/nbproject/private/
+/UART.X/build/default/
+/UART.X/dist/default/
+/Phase_II/UART.X/nbproject/private/
+/Phase_II/UART.X/dist/default/
+/Phase_II/PWM.X/nbproject/private/
+/Phase_II/PWM.X/build/default/
+/Phase_II/PWM.X/dist/default/
+
+
