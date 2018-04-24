@@ -256,10 +256,7 @@ uint8_t init_ADC_ch(uint8_t channel){
         return ADC_ERROR;
     }
     
-    TRISBbits.TRISB0 = 1;
-    AD1CHSbits.CH0SA = 0x0;
-    AD1PCFGbits.PCFG0 = 0;
-    /*
+    
     // Converts the hexadecimal channel value to a binary string.
     // The bit in the position given the number channel is set
     // e.g. channel = 3 => channel_bit_string = 0000 0000 0000 1000
@@ -273,7 +270,7 @@ uint8_t init_ADC_ch(uint8_t channel){
     
     // Select ADC channel
     AD1CHSbits.CH0SA = (channel & 0x0F);
-    */
+    
     
     return ADC_SUCCESS;
 }

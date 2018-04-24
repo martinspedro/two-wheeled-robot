@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <xc.h>
+#include "../UART.X/uart1.h"
 
 void delay(void){
     int i = 0;
@@ -29,6 +30,11 @@ int main(int argc, char** argv) {
     LATAbits.LATA3 = 1;
     LATFbits.LATF2 = 1;
     
+    config_UART1(115200, 8, 'N', 1);
+    enable_UART1();
+    
+    send_char('1');
+    
     adc_init();
     init_ADC_ch(0);
     enable_ADC();
@@ -42,8 +48,9 @@ int main(int argc, char** argv) {
         delay();
         
         end_conversion();
-        
+        send_char('S');
         while(!conversion_finnished());
+        send_char('D');
         PORTAbits.RA3 = 0;
         analog_value = ADC1BUF0;
         
