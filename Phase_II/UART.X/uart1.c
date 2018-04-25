@@ -41,6 +41,8 @@
 #define DEFAULT_STOP_BITS 1
 #define DEFAULT_DATA_BITS 8
 
+#define INTEGER_2_ASCII_OFFSET 0x30
+
 #define DISABLE_UART1    {U1MODEbits.ON = 0;}     // Disable UART 1
 
 
@@ -258,3 +260,56 @@ unsigned char read_char(void){
     
     return c;
 }
+
+/* @brief Blocking UART print 8 bit integer function
+ * @author Pedro Martins
+ * 
+ * Sends a 8 bit integer via UART1
+ * Uses send_char function
+ * 
+ */
+uint8_t print_uint8(uint8_t value){
+    uint8_t high = (value / 10 ) + INTEGER_2_ASCII_OFFSET;
+    uint8_t low  = (value % 10 ) + INTEGER_2_ASCII_OFFSET;
+    
+    send_char(high);
+    send_char(low);
+    
+    return UART_SUCCESS;
+}
+
+/* @brief Blocking UART print 16 bit integer function
+ * @author Pedro Martins
+ * 
+ * Sends a 8 bit integer via UART1
+ * Uses send_char function
+ * 
+ */
+uint8_t print_uint16(uint16_t value){        
+    uint8_t fifth_nibble =    (value / 10000 ) + INTEGER_2_ASCII_OFFSET;
+    uint8_t fourth_nibble = ( (value % 10000 ) / 1000 ) + INTEGER_2_ASCII_OFFSET;
+    uint8_t third_nibble  = ( (value % 1000 ) / 100   ) + INTEGER_2_ASCII_OFFSET;
+    uint8_t second_nibble = ( (value % 100 ) / 10     )     + INTEGER_2_ASCII_OFFSET;
+    uint8_t first_nibble  = ( (value % 10 )       ) + INTEGER_2_ASCII_OFFSET;
+    
+    send_char(fifth_nibble);
+    send_char(fourth_nibble);
+    send_char(third_nibble);
+    send_char(second_nibble);
+    send_char(first_nibble);
+}
+
+/* @brief Blocking UART read 8 bit integer function
+ * @author Pedro Martins
+ * 
+ * Sends a 8 bit integer via UART1
+ * Uses send_char function
+ * 
+ */
+uint8_t read_uint8(void){
+    uint8_t high = read_char() - INTEGER_2_ASCII_OFFSET;
+    uint8_t low  = read_char() - INTEGER_2_ASCII_OFFSET;
+    
+    return high * 10 + low;
+}
+
