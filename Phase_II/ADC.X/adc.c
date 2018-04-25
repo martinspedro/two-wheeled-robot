@@ -15,6 +15,11 @@
 #define ADC_ERROR   1
 #define ADC_SUCCESS 0
 
+#define ADC_MAX_VALUE 1023
+#define ADC_INT_ROUND 511
+#define AVDD VDD
+#define AVSS 0
+
 #define IO_ANALOG_PIN_REGISTER TRISB
 
 #define HAS_CONVERSION_FINISHED AD1CON1bits.DONE
@@ -33,7 +38,8 @@
  * @param uint16_t channel 
  * @author Pedro Martins
  */
-void adc_init(void){
+void adc_init(void)
+{
     /* Disable ADC module for configuration
      *
      * ADC Operating Mode bit
@@ -250,7 +256,8 @@ void adc_init(void){
     AD1CSSLbits.CSSL = 0x0000;
 }
 
-uint8_t init_ADC_ch(uint8_t channel){
+uint8_t init_ADC_ch(uint8_t channel)
+{
     if (channel > 15)
     {
         return ADC_ERROR;
@@ -280,7 +287,8 @@ uint8_t init_ADC_ch(uint8_t channel){
  * @param uint16_t channel 
  * @author Pedro Martins
  */
-uint8_t select_ADC_ch(uint8_t channel) {
+uint8_t select_ADC_ch(uint8_t channel)
+{
     if (channel > 15)
     {
         return ADC_ERROR;
@@ -294,18 +302,32 @@ uint8_t select_ADC_ch(uint8_t channel) {
  * @param uint16_t channel 
  * @author Pedro Martins
  */
-void enable_ADC(void){
+void enable_ADC(void)
+{
     AD1CON1bits.ON = 1;
 }
 
-void start_conversion(void){
+void start_conversion(void)
+{
     START_CONVERSION
 }
 
-void end_conversion(void){
+void end_conversion(void)
+{
     END_CONVERSION
 }
 
-uint8_t conversion_finnished(void){
+uint8_t conversion_finnished(void)
+{
     return HAS_CONVERSION_FINISHED;
+}
+
+uint8_t bin_2_volt(uint16_t analog_value)
+{
+	return (uint8_t)( (analog_value * (AVDD - AVSS) + ADC_INT_ROUND)/ADC_MAX_VALUE);
+}
+
+uint16_t get_analog_value(void)
+{
+    return (ADC1BUF0 & 0x3FF);
 }

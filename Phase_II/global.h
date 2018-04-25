@@ -17,6 +17,7 @@ extern "C" {
 #define SYSCLK 80000000L
 #define PBCLK  SYSCLK/2L
     
+#define VDD 33  // 3.3 V
     
 #ifdef	__cplusplus
 }

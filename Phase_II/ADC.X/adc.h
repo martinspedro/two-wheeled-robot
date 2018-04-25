@@ -22,5 +22,6 @@ uint8_t select_ADC_ch(uint8_t channel);
 uint8_t init_ADC_ch(uint8_t channel);
 uint8_t conversion_finnished(void);
 
+uint16_t get_analog_value(void);
 #endif	/* ADC_H */
 

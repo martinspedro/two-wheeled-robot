@@ -14,8 +14,12 @@
 
 void delay(void){
     int i = 0;
-    for( i = 0 ; i < 100; i++)
+    for( i = 0 ; i < 65000; i++)
     {
+        Nop();
+        Nop();
+        Nop();
+        Nop();
         Nop();
     }
 }
@@ -51,11 +55,14 @@ int main(int argc, char** argv) {
         send_char('S');
         while(!conversion_finnished());
         send_char('D');
+        send_char(' ');
         PORTAbits.RA3 = 0;
-        analog_value = ADC1BUF0;
         
+        analog_value = get_analog_value();
+        print_uint8(bin_2_volt(analog_value));
+        
+        send_char('\n');
         PORTFbits.RF2 = 0;
-
     }
     return (EXIT_SUCCESS);
 }
