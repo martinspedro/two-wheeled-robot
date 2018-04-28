@@ -1,10 +1,9 @@
-/* 
- * File:   adc.c
- * Author: martinspedro
+/** \file adc.c
+ * 
+ * \brief ADC device driver implementation file
+ * \author Oedro Martins
  *
- * Created on April 9, 2018, 16:43 PM
- * 
- * 
+ * \date Created on April 9, 2018, 16:43 PM
  */
 
 #include <xc.h>
@@ -30,13 +29,13 @@
 #endif
 
 
-/* @brief ADC configuration routine
+/** \brief ADC configuration routine
+ * 
  * This routine initializes the ADC module
  * It does NOT selects the ADC channel or initialize the ADC channel 
  * corresponding pin
  * 
- * @param uint16_t channel 
- * @author Pedro Martins
+ * \author Pedro Martins
  */
 void adc_init(void)
 {
@@ -256,6 +255,16 @@ void adc_init(void)
     AD1CSSLbits.CSSL = 0x0000;
 }
 
+
+/** \brief Initializes an ADC channel
+ * 
+ * Sets the given channel pin as analog input and changes ADC multiplexer input 
+ * to the given pin
+ * 
+ * \param uint8_t channel The number of the corresponding ADC channel
+ * \author Pedro Martins
+ * \todo should be replaced by a vector of channels
+ */
 uint8_t init_ADC_ch(uint8_t channel)
 {
     if (channel > 15)
@@ -282,10 +291,13 @@ uint8_t init_ADC_ch(uint8_t channel)
     return ADC_SUCCESS;
 }
 
-/* @brief Select ADC channel for conversion
+
+/** \brief Select the input channel for the ADC
  * 
- * @param uint16_t channel 
- * @author Pedro Martins
+ * Assumes that the channel as already being initialized
+ * 
+ * \param uint8_t channel The number of the corresponding ADC channel
+ * \author Pedro Martins
  */
 uint8_t select_ADC_ch(uint8_t channel)
 {
@@ -297,36 +309,59 @@ uint8_t select_ADC_ch(uint8_t channel)
     return ADC_SUCCESS;
 }
 
-/* @brief Enable ADC module
+/** \brief Enables ADC module
  * 
- * @param uint16_t channel 
- * @author Pedro Martins
+ * \author Pedro Martins
  */
 void enable_ADC(void)
 {
     AD1CON1bits.ON = 1;
 }
 
+/** \brief In manual mode, starts the sampling
+ * 
+ * \author Pedro Martins
+ */
 void start_conversion(void)
 {
     START_CONVERSION
 }
 
+/** \brief In manual mode, stops the sampling and starts converting
+ * 
+ * \author Pedro Martins
+ */
 void end_conversion(void)
 {
     END_CONVERSION
 }
 
+/** \brief Evaluates if the conversion has finnished
+ * 
+ * \author Pedro Martins
+ */
 uint8_t conversion_finnished(void)
 {
     return HAS_CONVERSION_FINISHED;
 }
 
+/** \brief Converts the analog value read in voltage
+ * 
+ * \f[\frac{analog\_value \cdot (A_{V_{DD}} - A_{V_{SS}} + ADC\_INT\_ROUND}{ADC\_MAX\_VALUE}\f]
+ * 
+ * \param uint16_t analog_value
+ * \author Pedro Martins
+ */
 uint8_t bin_2_volt(uint16_t analog_value)
 {
 	return (uint8_t)( (analog_value * (AVDD - AVSS) + ADC_INT_ROUND)/ADC_MAX_VALUE);
 }
 
+/** \brief Reads the first position of the buffer
+ * 
+ * 
+ * \author Pedro Martins
+ */
 uint16_t get_analog_value(void)
 {
     return (ADC1BUF0 & 0x3FF);

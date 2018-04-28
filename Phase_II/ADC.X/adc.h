@@ -1,8 +1,9 @@
-/* 
- * File:   adc.h
- * Author: martinspedro
+/** \file adc.h
+ * 
+ * \brief ADC device driver header file
+ * \author: Pedro Martins
  *
- * Created on April 9, 2018, 4:25 PM
+ * \date Created on April 9, 2018, 4:25 PM
  */
 
 #ifndef ADC_H
