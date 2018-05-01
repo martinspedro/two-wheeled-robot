@@ -6,39 +6,41 @@
  * \date Created on April 28, 2018, 5:36 PM
  */
 
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/attribs.h> 
+
 #include "interrupts.h"
 #include "../global.h"
 #include "../UART.X/uart1.h"
 
-#define SV_REQUESTED_PRIORITY_LVL INTSTATbits.SRIPL     // should only be used in single mode
-#define INTERRUPT_VECTOR_BITS     INTSTATbits.VEC       // The interrupt vector that is presented to the CPU
-
-#define RESET_IF_EXT_INT0 {IFS0bits.INT0IF = 0;}
-#define RESET_IF_EXT_INT1 {IFS0bits.INT1IF = 0;}
-
-/** \brief External Interrupt 0 Edge Polarity Control bit
- * Rising Edge Detection
+/** \brief Single Vector Requested Priority Level
+ * Should only be used if single vector mode interruptions are enable
  */
-#define EXT_INT_RISING_EDGE  1
+#define SV_REQUESTED_PRIORITY_LVL INTSTATbits.SRIPL     
 
-/** \brief External Interrupt 0 Edge Polarity Control bit
- * Falling Edge Detection
+/** \brief Interrupt Vector Bits presented to the CPU
+ * Should only be used if multi vector mode interruptions are enable
  */
-#define EXT_INT_FALLING_EDGE 0
+#define INTERRUPT_VECTOR_BITS     INTSTATbits.VEC
 
-/** \brief Interrupt configuration routine
- * 
- * \author Pedro Martins
- */
-void config_interrupts(void)
+
+#define RESET_IF_EXT_INT0 {IFS0bits.INT0IF = 0;}    //!< Reset Interrupt Flag for External Interrupt Pin 0 >
+#define RESET_IF_EXT_INT1 {IFS0bits.INT1IF = 0;}    //!< Reset Interrupt Flag for External Interrupt Pin 1 >
+
+
+#define EXT_INT_RISING_EDGE  1 //!< External Interrupt Edge Polarity sensible to Rising Edge Detection  >
+#define EXT_INT_FALLING_EDGE 0 //!< External Interrupt Edge Polarity sensible to Falling Edge Detection >
+
+#define set_isr_state(state) {__builtin_set_isr_state(state);}
+#define get_isr_state(state) {__builtin_get_isr_state(state);}
+
+
+
+
+void configure_global_interrupts(void)
 {
     Disable_Global_Interrupts();
-    
-    /***************************************************************************
-     *          CONFIGURE SYSTEM-WIDE INTERRUPTS SETTINGS
-     **************************************************************************/
     
     /* Deactivate Single vector shadow register
      * 
@@ -70,27 +72,38 @@ void config_interrupts(void)
      */
     INTCONbits.TPC = 0b000;
     
-    
-    /***************************************************************************
-     *                    CONFIGURE EXTERNAL INTERRUPTS
-     **************************************************************************/
-    
-    // Configure External Interrupts Edge Detection as Rising Edge
-    INTCONbits.INT0EP = EXT_INT_RISING_EDGE;
-    //INTCONbits.INT1EP = EXT_INT_RISING_EDGE;
-    
-    IPC0bits.INT0IP = EXT_INT0_IPL & 0x07;
-    IPC0bits.INT0IS = EXT_INT0_ISPL & 0x03;
-    
-    //IPC1bits.INT1IP = EXT_INT1_IPL & 0x07;
-    //IPC1bits.INT1IS = EXT_INT1_ISPL & 0x03;
 }
 
 
-/** \brief Interrupt Service Routine for External Interrupt Pin 0
+void configure_external_interrupts(void)
+{
+    // Reset Interrupt Flags
+    RESET_IF_EXT_INT0;
+    RESET_IF_EXT_INT1;
+    
+    // Configure External Interrupts Edge Detection as Rising Edge
+    INTCONbits.INT0EP = EXT_INT_RISING_EDGE;
+    INTCONbits.INT1EP = EXT_INT_RISING_EDGE;
+    
+    // Set Priority and sub-priority levels for INT0 & INT1
+    IPC0bits.INT0IP = EXT_INT0_IPL  & 0x07;
+    IPC0bits.INT0IS = EXT_INT0_ISPL & 0x03;
+    
+    IPC1bits.INT1IP = EXT_INT1_IPL  & 0x07;
+    IPC1bits.INT1IS = EXT_INT1_ISPL & 0x03;
+}
+
+
+/** \brief ISR for External Interrupt Pin 0
  * 
- * \param None.
+ * \pre    Global and External Interrupts must be configured and enabled
+ * \param  None.
  * \return None.
+ * 
+ * Interruption Service Routine for External Interrupt Pin 0
+ * The interruption source priority is 6 and the compiler must write software to
+ * perform the context switching
+ * 
  * \author Pedro Martins
  */
 void __ISR(_EXTERNAL_0_VECTOR, IPL6SOFT) _INT0Interrupt(void)

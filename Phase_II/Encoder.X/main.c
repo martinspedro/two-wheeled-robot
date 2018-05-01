@@ -1,8 +1,9 @@
-/* 
- * File:   main.c
- * Author: martinspedro
- *
- * Created on May 1, 2018, 11:05 AM
+/** 
+ * \file main.c
+ * \brief Interrupt device driver main test file
+ * 
+ * \author Pedro Martins
+ * \date Created on May 1, 2018, 11:05 AM
  */
 
 #include "../devcfgx_config_bits.h"
@@ -19,13 +20,12 @@ void main(void) {
     config_UART1(115200, 8, 'N', 1);
     enable_UART1();
     
-    config_interrupts();
+    configure_global_interrupts();
+    configure_external_interrupts();
+    
     Enable_Global_Interrupts();
-    ENABLE_EXT_INT0
+    ENABLE_EXT_INT0;
             
-    while(1)
-    {
-      
-    }
+    while(1);
 }
 
