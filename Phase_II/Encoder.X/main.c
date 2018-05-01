@@ -9,6 +9,7 @@
 #include "../devcfgx_config_bits.h"
 #include "../global.h"
 #include "interrupts.h"
+#include "encoder.h"
 #include "../UART.X/uart1.h"
 
 
@@ -24,7 +25,7 @@ void main(void) {
     configure_external_interrupts();
     
     Enable_Global_Interrupts();
-    ENABLE_EXT_INT0;
+    ENABLE_EXT_INT2;
             
     while(1);
 }
