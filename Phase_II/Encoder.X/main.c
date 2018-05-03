@@ -15,18 +15,19 @@
 
 void main(void) {
     TRISAbits.TRISA3 = 0;
-    PORTAbits.RA3 = 1;
+    PORTAbits.RA3 = 0;
     TRISDbits.TRISD0 = 1;
     
     config_UART1(115200, 8, 'N', 1);
     enable_UART1();
-    
+    send_char('S');
     configure_global_interrupts();
     configure_external_interrupts();
     
     Enable_Global_Interrupts();
+    //ENABLE_EXT_INT1;
     ENABLE_EXT_INT2;
-            
+    
     while(1);
 }
 

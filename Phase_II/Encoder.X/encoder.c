@@ -14,6 +14,7 @@
 #include "encoder.h"
 #include "../UART.X/uart1.h"
 
+#define USE_CHIPKIT
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
@@ -32,6 +33,16 @@
 #define ENCODER_RIGHT_A  PORTAbits.RA14     //!< I/O Pin for A Encoder of Right Wheel 
 #define ENCODER_RIGHT_B  PORTAbits.RA15     //!< I/O Pin for B Encoder of Right Wheel 
 
+#ifdef USE_CHIPKIT
+    #define ENCODER_LEFT_A   PORTEbits.RE8      //!< I/O Pin for A Encoder of Left Wheel  
+    #define ENCODER_LEFT_B   PORTEbits.RE9      //!< I/O Pin for B Encoder of Left Wheel  
+#else 
+    #define ENCODER_LEFT_A   PORTEbits.RE8      //!< I/O Pin for A Encoder of Left Wheel  
+    #define ENCODER_LEFT_B   PORTEbits.RE9      //!< I/O Pin for B Encoder of Left Wheel  
+
+    #define ENCODER_RIGHT_A  PORTAbits.RA14     //!< I/O Pin for A Encoder of Right Wheel 
+    #define ENCODER_RIGHT_B  PORTAbits.RA15     //!< I/O Pin for B Encoder of Right Wheel 
+#endif
 
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
@@ -51,6 +62,10 @@ volatile uint8_t invalid_encoder_transition;
  ******************************************************************************/
 void configure_external_interrupts(void)
 {
+    // Disable External Interrupts
+    DISABLE_EXT_INT1;
+    DISABLE_EXT_INT2;
+    
     // Reset Interrupt Flags
     RESET_IF_EXT_INT0;
     RESET_IF_EXT_INT1;
@@ -89,8 +104,7 @@ void init_encoder_state(void)
 
 void __ISR(_EXTERNAL_1_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_A(void)
 {
-    static volatile uint8_t aux = 0;
-    
+    PORTAbits.RA3 = 1;
     DISABLE_EXT_INT1;
     
     // if a rising edge was detected
@@ -130,19 +144,22 @@ void __ISR(_EXTERNAL_1_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_A(void)
         else
         {
             invalid_encoder_transition = ENCODER_ERROR;
+            send_char('E');
         }   
     }    
-    
+    send_char('A');
+    print_uint16(pulse_count_L);
+    send_char('\n');
     INTCONINV = 0x0002;     // Invert edge detection polarity
     RESET_IF_EXT_INT1;
     ENABLE_EXT_INT1;
+    PORTAbits.RA3 = 0;
 }
 
 
 void __ISR(_EXTERNAL_2_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_B(void)
 {
-    static volatile uint8_t aux = 0;
-    
+    PORTAbits.RA3 = 1;
     DISABLE_EXT_INT2;
     
     // if a rising edge was detected
@@ -182,10 +199,14 @@ void __ISR(_EXTERNAL_2_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_B(void)
         else
         {
             invalid_encoder_transition = ENCODER_ERROR;
+             send_char('E');
         }   
     }    
-    
+    send_char('B');
+    print_uint16(pulse_count_L);
+    send_char('\n');
     INTCONINV = 0x0004;     // Invert edge detection polarity
     RESET_IF_EXT_INT2;
     ENABLE_EXT_INT2;
+    PORTAbits.RA3 = 0;
 }
