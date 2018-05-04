@@ -1,26 +1,28 @@
-/* 
- * File:   global.h
- * Author: martinspedro
- *
- * Created on April 3, 2018, 10:41 AM
+/** 
+ * \file global.h
+ * \brief Global configurations for E4 project
+ * 
+ * \author Pedro Martins
+ * \date Created on April 3, 2018, 10:41 AM
  */
+
 
 #ifndef GLOBAL_H
 #define	GLOBAL_H
 
-#ifdef	__cplusplus
-extern "C" {
-#endif
 
+/*******************************************************************************
+ *                        OSCILLATOR
+ ******************************************************************************/
+#define SYSCLK 80000000L    //!< System Clock Frequency (Hz))
+#define PBCLK  SYSCLK/2L    //!< Pheripheral System Clock Frequency (Hz))
+    
 
-// Define clock values
-#define SYSCLK 80000000L
-#define PBCLK  SYSCLK/2L
+/*******************************************************************************
+ *                        ELECTRICAL
+ ******************************************************************************/
+#define VDD 33              //!< PIC Input Voltage
     
-    
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* GLOBAL_H */
 
