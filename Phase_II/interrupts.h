@@ -1,9 +1,9 @@
 /**
- * \file interrupts.h
- * \brief Global Interrupt configuration Header File
+ * \file   interrupts.h
+ * \brief  Global Interrupt configuration Header File
  * 
  * \author Pedro Martins
- * \date Created on May 1, 2018, 10:22 AM
+ * \date   Created on May 1, 2018, 10:22 AM
  */
 
 
