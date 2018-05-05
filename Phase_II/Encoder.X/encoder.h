@@ -30,6 +30,14 @@
 #define ENCODER_ERROR   1   //!< Return value in case of Error
 #define ENCODER_SUCCESS 0   //!< Return value in case of Success
 
+volatile enum State CS_left;
+
+enum State {S0 = 0b00, S1 = 0b01, S2 = 0b10, S3 = 0b11};
+
+extern volatile uint8_t print_flag;
+extern volatile int16_t pulse_count_L;
+extern volatile uint8_t invalid_encoder_transition;
+
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
