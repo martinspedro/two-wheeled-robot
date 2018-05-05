@@ -1,14 +1,14 @@
 /** 
- * \file global.h
- * \brief Global configurations for E4 project
+ * \file   global.h
+ * \brief  Global configurations for E4 project
  * 
  * \author Pedro Martins
- * \date Created on April 3, 2018, 10:41 AM
+ * \date   Created on April 3, 2018, 10:41 AM
  */
 
 
 #ifndef GLOBAL_H
-#define	GLOBAL_H
+#define GLOBAL_H
 
 
 /*******************************************************************************

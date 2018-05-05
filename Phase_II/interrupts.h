@@ -7,11 +7,10 @@
  */
 
 
-#include <xc.h>
 #include <sys/attribs.h> 
 
 #ifndef INTERRUPTS_H
-#define	INTERRUPTS_H
+#define INTERRUPTS_H
 
 /*******************************************************************************
  *                           MACROS DEFINITION
