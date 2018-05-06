@@ -1,22 +1,14 @@
-/* 
- * File:   devcfgx_config_bits.h
- * Author: martinspedro
- *
- * Created on March 20, 2018, 10:10 AM
+/** 
+ * \file   DEVCFGx_config_bits.h
+ * \brief  PIC32MX795F512L Configuration Bit Settings
+ * 
+ * \author Pedro Martins
+ * \date   Created on March 20, 2018, 10:10 AM
  */
+
 
 #ifndef DEVCFGX_CONFIG_BITS_H
 #define	DEVCFGX_CONFIG_BITS_H
-
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
-
-
-// PIC32MX795F512L Configuration Bit Settings
-
-// 'C' source line config statements
 
 // DEVCFG3
 // USERID = No Setting
