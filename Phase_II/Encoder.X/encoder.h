@@ -9,6 +9,8 @@
 #ifndef ENCODER_H
 #define	ENCODER_H
 
+#include <xc.h>
+
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
@@ -20,15 +22,6 @@
 #define DISABLE_EXT_INT3 {IEC0bits.INT3IE = 0;}     //!< Disables INT3 interrupt 
 #define ENABLE_EXT_INT4  {IEC0bits.INT4IE = 1;}     //!< Enables  INT4 interrupt 
 #define DISABLE_EXT_INT4 {IEC0bits.INT4IE = 0;}     //!< Disables INT4 interrupt 
-
-#define EXT_INT1_IPL  6     //!< External Interrupt Pin 1 Priority Level     
-#define EXT_INT1_ISPL 0     //!< External Interrupt Pin 1 Sub-Priority Level 
-#define EXT_INT2_IPL  6     //!< External Interrupt Pin 2 Priority Level     
-#define EXT_INT2_ISPL 0     //!< External Interrupt Pin 2 Sub-Priority Level 
-#define EXT_INT3_IPL  6     //!< External Interrupt Pin 3 Priority Level     
-#define EXT_INT3_ISPL 0     //!< External Interrupt Pin 3 Sub-Priority Level 
-#define EXT_INT4_IPL  6     //!< External Interrupt Pin 4 Priority Level     
-#define EXT_INT4_ISPL 0     //!< External Interrupt Pin 4 Sub-Priority Level 
 
 #define ENCODER_ERROR   1   //!< Return value in case of Error
 #define ENCODER_SUCCESS 0   //!< Return value in case of Success

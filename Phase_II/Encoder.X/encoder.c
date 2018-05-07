@@ -13,7 +13,6 @@
 #include "../global.h"
 #include "../interrupts.h"
 #include "encoder.h"
-#include "../UART.X/uart1.h"
 
 
 /*******************************************************************************
@@ -33,6 +32,15 @@
 #define ENCODER_LEFT_B   PORTEbits.RE9      //!< I/O Pin for B Encoder of Left Wheel  
 #define ENCODER_RIGHT_A  PORTAbits.RA14     //!< I/O Pin for A Encoder of Right Wheel 
 #define ENCODER_RIGHT_B  PORTAbits.RA15     //!< I/O Pin for B Encoder of Right Wheel 
+
+#define EXT_INT1_IPL  6     //!< External Interrupt Pin 1 Priority Level     
+#define EXT_INT1_ISPL 0     //!< External Interrupt Pin 1 Sub-Priority Level 
+#define EXT_INT2_IPL  6     //!< External Interrupt Pin 2 Priority Level     
+#define EXT_INT2_ISPL 0     //!< External Interrupt Pin 2 Sub-Priority Level 
+#define EXT_INT3_IPL  6     //!< External Interrupt Pin 3 Priority Level     
+#define EXT_INT3_ISPL 0     //!< External Interrupt Pin 3 Sub-Priority Level 
+#define EXT_INT4_IPL  6     //!< External Interrupt Pin 4 Priority Level     
+#define EXT_INT4_ISPL 0     //!< External Interrupt Pin 4 Sub-Priority Level 
 
 #define EXT_INT_RISING_EDGE  1      //!< External Interrupt Edge Polarity sensible to Rising Edge Detection 
 #define EXT_INT_FALLING_EDGE 0      //!< External Interrupt Edge Polarity sensible to Falling Edge Detection
