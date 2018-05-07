@@ -5,12 +5,15 @@
  * Created on April 9, 2018, 4:25 PM
  */
 
-#include "../devcfgx_config_bits.h"
+#include "../DEVCFGx_config_bits.h"
 #include "../global.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <xc.h>
 #include "../UART.X/uart1.h"
+#include "../interrupts.h"
+#include "adc.h"
+#include "../interrupts.h"
 
 void delay(void){
     int i = 0;
@@ -29,6 +32,9 @@ void delay(void){
  */
 int main(int argc, char** argv) {
     uint16_t analog_value;
+        TRISBbits.TRISB4 = 0;
+    LATBbits.LATB4 = 0;
+
     TRISAbits.TRISA3 = 0;
     TRISFbits.TRISF2 = 0;
     LATAbits.LATA3 = 1;
@@ -39,30 +45,37 @@ int main(int argc, char** argv) {
     
     send_char('1');
     
-    adc_init();
+    adc_peripheral_init();
+    config_input_scan(0);
     init_ADC_ch(0);
-    enable_ADC();
+    
+    configure_global_interrupts();
+    ENABLE_ADC_INTERRUPTS;
+    Enable_Global_Interrupts();
+    ENABLE_ADC;
     
     while(1){
-        PORTAbits.RA3 = 1;
-        PORTFbits.RF2 = 1;
-        
-        
-        start_conversion();
-        delay();
-        
-        end_conversion();
-        send_char('S');
-        while(!conversion_finnished());
-        send_char('D');
-        send_char(' ');
-        PORTAbits.RA3 = 0;
-        
-        analog_value = get_analog_value();
-        print_uint8(bin_2_volt(analog_value));
-        
-        send_char('\n');
-        PORTFbits.RF2 = 0;
+        #ifdef MANUAL_MODE
+            PORTAbits.RA3 = 1;
+            PORTFbits.RF2 = 1;
+
+
+            start_conversion();
+            delay();
+
+            end_conversion();
+            send_char('S');
+            while(!conversion_finnished());
+            send_char('D');
+            send_char(' ');
+            PORTAbits.RA3 = 0;
+
+            analog_value = get_analog_value();
+            print_uint8(bin_2_volt(analog_value));
+
+            send_char('\n');
+            PORTFbits.RF2 = 0;
+        #endif
     }
     return (EXIT_SUCCESS);
 }

@@ -1,270 +1,231 @@
-/** \file adc.c
+/** 
+ * \file   adc.c
+ * \brief  ADC device driver implementation C file
  * 
- * \brief ADC device driver implementation file
- * \author Oedro Martins
- *
- * \date Created on April 9, 2018, 16:43 PM
+ * \author Pedro Martins
+ * \date   Created on April 9, 2018, 16:43 PM
  */
 
 #include <xc.h>
+
 #include "../global.h"
+#include "adc.h"
+#include "../interrupts.h"
 
-#define MANUAL_MODE
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
+#define ADC_MAX_VALUE 1023      //!< ADC maximum read value
+#define ADC_INT_ROUND 511       //!< Value used to round analog value to the nearest integer
 
-#define ADC_ERROR   1
-#define ADC_SUCCESS 0
+#define AVDD VDD                //!< Analog Positive Voltage Reference
+#define AVSS 0                  //!< Analog Negative Voltage Reference
 
-#define ADC_MAX_VALUE 1023
-#define ADC_INT_ROUND 511
-#define AVDD VDD
-#define AVSS 0
+#define IO_ANALOG_PIN_REGISTER TRISB    //!< Analog Pin Register
 
-#define IO_ANALOG_PIN_REGISTER TRISB
 
-#define HAS_CONVERSION_FINISHED AD1CON1bits.DONE
-#define BUFFER_FILL_STATUS  AD1CON2bits.BUFS
-#ifdef MANUAL_MODE
-    #define START_CONVERSION {AD1CON1bits.SAMP = 1;}
-    #define END_CONVERSION   {AD1CON1bits.SAMP = 0;}
+#ifdef AUTO_SAMPLING_MODE
+    #define NUM_SAMPLES_PER_INTERRUPT 8
 #endif
 
+#define DEFAULT_ADC_CH_MUXA 0
+#define DEFAULT_ADC_CH_MUXB 0
 
-/** \brief ADC configuration routine
- * 
- * This routine initializes the ADC module
- * It does NOT selects the ADC channel or initialize the ADC channel 
- * corresponding pin
- * 
- * \author Pedro Martins
- */
-void adc_init(void)
+#define RESET_IF_ADC {IFS1bits.AD1IF = 0;}  //!< Reset Interrupt Flag for ADC
+
+#define ADC_IPL  4     //!< ADC Priority Level     
+#define ADC_ISPL 0     //!< ADC Sub-Priority Level 
+
+#define ACQUISITION_TIME_TAD 8
+#define CONVERSION_CLOCK_PERIOD 124
+
+/*******************************************************************************
+ *                         CLASS METHODS
+ ******************************************************************************/
+void adc_peripheral_init(void)
 {
-    /* Disable ADC module for configuration
-     *
-     * ADC Operating Mode bit
-     *    1 = A/D converter module is operating
-     *    0 = A/D converter is off
-     */
-    AD1CON1bits.ON = 0;
+    DISABLE_ADC;    // Disable ADC module to enable configuration
 
-    /* Enable ADC while CPU is IDLE
-     * 
-     * Stop in IDLE Mode bit
-     *  1 = Discontinue module operation when device enters IDLE mode
-     *  0 = Continue module operation in IDLE mode
-     */
+    /***************************************************************************
+     *                        ADC CONTROL REGISTERS
+     **************************************************************************/
+    
+    /* ADC Peripheral continues to operate while CPU is in IDLE mode */
     AD1CON1bits.SIDL = 0;
     
-    /* Use integer 16 bits as output format
+    /* Use 16 bit integer as output format for ADC measurements
      * 
-     * Data Output Format bits
-     *   011 = Signed Fractional 16-bit (DOUT = 0000 0000 0000 0000 sddd dddd dd00 0000)
-     *   010 = Fractional 16-bit (DOUT = 0000 0000 0000 0000 dddd dddd dd00 0000)
-     *   001 = Signed Integer 16-bit (DOUT = 0000 0000 0000 0000 ssss sssd dddd dddd)
-     *   000 = Integer 16-bit (DOUT = 0000 0000 0000 0000 0000 00dd dddd dddd)
-     *   111 = Signed Fractional 32-bit (DOUT = sddd dddd dd00 0000 0000 0000 0000)
-     *   110 = Fractional 32-bit (DOUT = dddd dddd dd00 0000 0000 0000 0000 0000)
-     *   101 = Signed Integer 32-bit (DOUT = ssss ssss ssss ssss ssss sssd dddd dddd)
-     *   100 = Integer 32-bit (DOUT = 0000 0000 0000 0000 0000 00dd dddd dddd)
+     * Integer 16-bit (DOUT = 0000 0000 0000 0000 0000 00dd dddd dddd)
      */
     AD1CON1bits.FORM = 0b000;
     
-    /* Use ADC in manual mode. Clearing SAMP bit ends sampling and starts conversion 
+    /* Conversion Trigger Source Select bits
      * 
-     * Conversion Trigger Source Select bits
-     *   111 = Internal counter ends sampling and starts conversion (auto convert)
-     *   110 = Reserved
-     *   101 = Reserved
-     *   100 = Reserved
-     *   011 = Reserved
-     *   010 = Timer 3 period match ends sampling and starts conversion
-     *   001 = Active transition on INT0 pin ends sampling and starts conversion
-     *   000 = Clearing SAMP bit ends sampling and starts conversion
+     *    MANUAL MODE        - Clearing SAMP bit ends sampling and starts conversion
+     *    AUTO_SAMPLING_MODE - Internal counter ends sampling and starts conversion 
+     *                         (auto convert)
      */
-    AD1CON1bits.SSRC = 0b000;
-    
-    /* ADC overwrites buffer contents after each conversion
-     * 
-     * Stop Conversion Sequence bit (when the first A/D converter interrupt is generated)
-     *   1 = Stop conversions when the first ADC interrupt is generated. 
-     *       Hardware clears the ASAM bit when the ADC interrupt is generated.
-     *   0 = Normal operation, buffer contents will be overwritten by the next 
-     *       conversion sequence
+    #ifdef MANUAL_MODE
+        AD1CON1bits.SSRC = 0b000;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON1bits.SSRC = 0b111;
+    #endif
+
+    /* Buffer contents will be overwritten by the ADC next conversion sequence 
+     * (Normal Operation)
      */
     AD1CON1bits.CLRASAM = 0;
+
     
-    /* Setting SAMP bit starts a new conversion
+    /* ADC Sample Auto-Start bit
      * 
-     * ADC Sample Auto-Start bit
-     *   1 = Sampling begins immediately after last conversion completes; SAMP bit is automatically set.
-     *   0 = Sampling begins when SAMP bit is set
+     *    MANUAL MODE        - Setting SAMP bit starts sampling
+     *    AUTO_SAMPLING_MODE - Sampling begins immediately after the last conversion 
+     *                         is completed and SAMP bit is automatically set.
      */
-    AD1CON1bits.ASAM = 0;
+    #ifdef MANUAL_MODE
+        AD1CON1bits.ASAM = 0;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON1bits.ASAM = 1;
+    #endif  
     
-    /* ADC sample/hold amplifier default state is HOLD
+    /* ADC sample/hold amplifier default state 
      * 
-     * ADC Sample Enable bit
-     *   1 = The ADC SHA is sampling
-     *   0 = The ADC sample/hold amplifier is holding
-     *
-     *   When ASAM = 0, writing '1' to this bit starts sampling.
-     *   When SSRC = 000, writing '0' to this bit will end sampling and start conversion.
+     *    MANUAL MODE        - The ADC sample/hold amplifier is holding.
+     *                         Writing '1' to this bit (SAMP) starts sampling.
+     *                         Writing '0' to this bit will end sampling and start conversion.
+     *    AUTO_SAMPLING_MODE - The ADC SHA is sampling
      */
-    AD1CON1bits.SAMP = 0;
+    #ifdef MANUAL_MODE
+        AD1CON1bits.SAMP = 0;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON1bits.SAMP = 1;
+    #endif 
     
-    /* Voltage Reference for ADC is the voltage for PIC
-     * 
-     * Voltage Reference Configuration bits
-     * 
-     *           ADC VR+           |        ADC VR-
-     *   --------------------------------------------------
-     *   000      AVDD             |         AVSS
-     *   001   External VREF+ pin  |         AVSS
-     *   010      AVDD             |  External VREF- pin
-     *   011   External VREF+ pin  |  External VREF- pin
-     *   1xx      AVDD             |         AVSS
+    
+    /* Select the same Voltage Reference for ADC as PIC
+     * AVDD = VDD
+     * AVSS = GND
      */
     AD1CON2bits.VCFG = 0b000;
     
-    /* Disable Offset Calibration mode
-     * 
-     * Input Offset Calibration Mode Select bit
-     *   1 = Enable Offset Calibration mode
-     *       VINH and VINL of the SHA are connected to VR-
-     *   0 = Disable Offset Calibration mode
-     *       The inputs to the SHA are controlled by AD1CHS or AD1CSSL
+    /* Disable Offset Calibration mode.
+     * The inputs to the SHA are controlled by AD1CHS or AD1CSSL
      */
-    AD1CON2bits.OFFCAL = 0;
+    DISABLE_INPUT_OFFSET_CALIBRATION_MODE;
     
-    /* Disable Input Scanning
+    /*  Scan Input Selections for CH0+ SHA Input for MUX A Input 
      * 
-     * Scan Input Selections for CH0+ SHA Input for MUX A Input Multiplexer Setting bit
-     *   1 = Scan inputs
-     *   0 = Do not scan inputs
+     *    MANUAL MODE        - Do not scan inputs
+     *    AUTO_SAMPLING_MODE - Scan inputs
      */
-    AD1CON2bits.CSCNA = 0;
+    #ifdef MANUAL_MODE
+        DISABLE_INPUT_SCANNING;
+    #elif AUTO_SAMPLING_MODE
+        ENABLE_INPUT_SCANNING;
+    #endif 
     
-    /* Define 1 interrupt per converted sample
+    
+    /* Sample/Convert Sequences Per Interrupt Selection bits
      * 
-     * Sample/Convert Sequences Per Interrupt Selection bits
-     *   1111 = Interrupts at the completion of conversion for each 16 th sample/convert sequence
-     *   1110 = Interrupts at the completion of conversion for each 15 th sample/convert sequence
-     *   .....
-     *   0001 = Interrupts at the completion of conversion for each 2 nd sample/convert sequence
-     *   0000 = Interrupts at the completion of conversion for each sample/convert sequence
+     *    MANUAL MODE        - 0 sample/convert sequences per interrupt
+     *    AUTO_SAMPLING_MODE - NUM_SAMPLES_PER_INTERRUPT sample/convert sequences per interrupt
      */
-    AD1CON2bits.SMPI = 0b0000;
+    #ifdef MANUAL_MODE
+        AD1CON2bits.SMPI = 0b000;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON2bits.SMPI = NUM_SAMPLES_PER_INTERRUPT;
+    #endif 
     
-    /* Configure ADC buffer as a 16 word buffer
+    
+    /* ADC Result Buffer Mode Select bit
      * 
-     * ADC Result Buffer Mode Select bit
-     *   1 = Buffer configured as two 8-word buffers, ADC1BUF(7...0), ADC1BUF(15...8)
-     *   0 = Buffer configured as one 16-word buffer ADC1BUF(15...0.)
+     *    MANUAL MODE        - Buffer configured as one 16-word buffer ADC1BUF(15...0.)
+     *    AUTO_SAMPLING_MODE - Buffer configured as two 8-word buffers, 
+     *                         ADC1BUF(7...0), ADC1BUF(15...8)
      */
-    AD1CON2bits.BUFM = 0;
+    #ifdef MANUAL_MODE
+        AD1CON2bits.BUFM = 0;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON2bits.BUFM = 1;
+    #endif 
     
-    /* Use MUX A input multiplexer settings for the Analog channels
-     *
-     * Alternate Input Sample Mode Select bit
-     *   1 = Uses MUX A input multiplexer settings for first sample, then 
-     *       alternates between MUX B and MUX A input multiplexer settings for 
-     *       all subsequent samples
-     *   0 = Always use MUX A input multiplexer settings
-     */
+    
+    /* Always use MUX A input multiplexer settings for the Analog channels */
     AD1CON2bits.ALTS = 0;
             
-    /* ADC clock source is the peripheral bus clock
-     * 
-     * ADC Conversion Clock Source bit
-     *  1 = ADC internal RC clock
-     *  0 = Clock derived from Peripheral Bus Clock (PBclock)
-     */
+    /* Use the Peripheral Bus Clock for the ADC clock source */
     AD1CON3bits.ADRC = 0;
     
-    /*
-     * Auto-Sample Time bits
-     *   11111 = 31 T AD
-     *   ·····
-     *   00001 = 1 T AD
-     *   00000 = 0 T AD (Not allowed)
-     */
-    //AD1CON3bits.SAMC = 
-    
-    /* 
-     *
-     * ADC Conversion Clock Select bits 
-     *   11111111 = TPB ? 2 ? (ADCS<7:0> + 1) = 512 ? TPB = TAD
-     *   ?
-     *   ?
-     *   ?
-     *   00000001 = TPB ? 2 ? (ADCS<7:0> + 1) = 4 ? TPB = TAD
-     *   00000000 = TPB ? 2 ? (ADCS<7:0> + 1) = 2 ? TPB = TAD
-     */
-    AD1CON3bits.ADCS = 0b00011110;
-    
-    /* MUX B negative input is VR-
+    /* Auto-Sample Time bits
      * 
-     * Negative Input Select bit for MUX B
-     *   1 = Channel 0 negative input is AN1
-     *   0 = Channel 0 negative input is VR-
+     *    MANUAL MODE        - Not set
+     *    AUTO_SAMPLING_MODE - Each conversion is sampled for ACQUISITION_TIME_TAD 
      */
+    #ifdef AUTO_SAMPLING_MODE
+        AD1CON3bits.SAMC = ACQUISITION_TIME_TAD;
+    #endif
+
+    /* ADC Conversion Clock Select bits 
+     *
+     *    MANUAL MODE        - TAD = 769.23 ns
+     *    AUTO_SAMPLING_MODE - TAD = 6.25 us. Guarantees that by reading 8 values
+     *                         (half of the buffer), generates an interrupt every 1 ms
+     * 
+     */
+    #ifdef MANUAL_MODE
+        AD1CON3bits.ADCS = 0b00011110;
+    #elif AUTO_SAMPLING_MODE
+        AD1CON3bits.ADCS = CONVERSION_CLOCK_PERIOD;
+    #endif
+    
+    /***************************************************************************
+    *                   ADC CHANNEL SELECTION REGISTERS
+    **************************************************************************/
+    
+    /* Select VR- for channel 0 negative input in MUX B */
     AD1CHSbits.CH0NB = 0;
     
-    /* Select MUX B positive input as AN0 (unused - connect to AVss)
-     * 
-     * CH0SB<3:0>: Positive Input Select bits for MUX B
-     *   1111 = Channel 0 positive input is AN15
-     *   1110 = Channel 0 positive input is AN14
-     *   1101 = Channel 0 positive input is AN13
-     *   ?
-     *   ?
-     *   ?
-     *   0001 = Channel 0 positive input is AN1
-     *   0000 = Channel 0 positive input is AN0
-     */
-    AD1CHSbits.CH0SB = 0b000;
+    /* Select MUX B positive input as DEFAULT_ADC_CH_MUXB */
+    AD1CHSbits.CH0SB = DEFAULT_ADC_CH_MUXB;
     
-    /* MUX A negative input is VR-
-     * 
-     * Negative Input Select bit for MUX A Multiplexer Setting
-     *   1 = Channel 0 negative input is AN1
-     *   0 = Channel 0 negative input is VR-     
-     */
+    /* Select VR- for channel 0 negative input in MUX A */
     AD1CHSbits.CH0NA = 0;
     
-    /* Select MUX A positive input as AN0 (unused - connect to AVss)
-     * 
-     * CH0SB<3:0>: Positive Input Select bits for MUX B
-     *   1111 = Channel 0 positive input is AN15
-     *   1110 = Channel 0 positive input is AN14
-     *   1101 = Channel 0 positive input is AN13
-     *   ?
-     *   ?
-     *   ?
-     *   0001 = Channel 0 positive input is AN1
-     *   0000 = Channel 0 positive input is AN0
-     */
-    AD1CHSbits.CH0SA = 0b000;
+    /* Select MUX A positive input as DEFAULT_ADC_CH_MUXA */
+    AD1CHSbits.CH0SA = DEFAULT_ADC_CH_MUXA;
     
-    /* Skip all channels for ADC input pin scan
-     * 
-     * CSSL<15:0>: ADC Input Pin Scan Selection bits
-     *   1 = Select ANx for input scan
-     *   0 = Skip ANx for input scan
+    
+    /***************************************************************************
+    *                         INTERRUPTS
+    **************************************************************************/
+    // Set Priority and sub-priority levels for INT1 & INT2
+    IPC6bits.AD1IP = ADC_IPL  & 0x07;
+    IPC6bits.AD1IS = ADC_ISPL & 0x03;
+    
+    RESET_IF_ADC;
+}
+
+uint8_t config_input_scan(uint8_t channel)
+{
+    if (channel > 15)
+    {
+        return ADC_ERROR;
+    }
+    
+    /* Converts the hexadecimal channel value to a binary string.
+     * The bit in the position given the number channel is set
+     * e.g. channel = 3 => channel_bit_string = 0000 0000 0000 1000
      */
-    AD1CSSLbits.CSSL = 0x0000;
+    uint16_t channel_bit_string = (uint16_t) (0b1 << (channel & 0x0F)) & 0x0FF;
+    
+    /* Selects channels for ANx input scan (active '1') */
+    AD1CHSSET = channel_bit_string;
+    
+    return ADC_SUCCESS;
 }
 
 
-/** \brief Initializes an ADC channel
- * 
- * Sets the given channel pin as analog input and changes ADC multiplexer input 
- * to the given pin
- * 
- * \param uint8_t channel The number of the corresponding ADC channel
- * \author Pedro Martins
- * \todo should be replaced by a vector of channels
- */
 uint8_t init_ADC_ch(uint8_t channel)
 {
     if (channel > 15)
@@ -282,7 +243,7 @@ uint8_t init_ADC_ch(uint8_t channel)
     IO_ANALOG_PIN_REGISTER = (IO_ANALOG_PIN_REGISTER & (channel_bit_string));
     
     // Select IO pin as analog input
-    AD1PCFGbits.PCFG = AD1PCFGbits.PCFG & (!channel_bit_string);
+    AD1PCFGCLR = channel_bit_string;
     
     // Select ADC channel
     AD1CHSbits.CH0SA = (channel & 0x0F);
@@ -292,13 +253,7 @@ uint8_t init_ADC_ch(uint8_t channel)
 }
 
 
-/** \brief Select the input channel for the ADC
- * 
- * Assumes that the channel as already being initialized
- * 
- * \param uint8_t channel The number of the corresponding ADC channel
- * \author Pedro Martins
- */
+
 uint8_t select_ADC_ch(uint8_t channel)
 {
     if (channel > 15)
@@ -309,60 +264,23 @@ uint8_t select_ADC_ch(uint8_t channel)
     return ADC_SUCCESS;
 }
 
-/** \brief Enables ADC module
- * 
- * \author Pedro Martins
- */
-void enable_ADC(void)
-{
-    AD1CON1bits.ON = 1;
-}
 
-/** \brief In manual mode, starts the sampling
- * 
- * \author Pedro Martins
- */
-void start_conversion(void)
-{
-    START_CONVERSION
-}
 
-/** \brief In manual mode, stops the sampling and starts converting
- * 
- * \author Pedro Martins
- */
-void end_conversion(void)
-{
-    END_CONVERSION
-}
-
-/** \brief Evaluates if the conversion has finnished
- * 
- * \author Pedro Martins
- */
-uint8_t conversion_finnished(void)
-{
-    return HAS_CONVERSION_FINISHED;
-}
-
-/** \brief Converts the analog value read in voltage
- * 
- * \f[\frac{analog\_value \cdot (A_{V_{DD}} - A_{V_{SS}} + ADC\_INT\_ROUND}{ADC\_MAX\_VALUE}\f]
- * 
- * \param uint16_t analog_value
- * \author Pedro Martins
- */
 uint8_t bin_2_volt(uint16_t analog_value)
 {
 	return (uint8_t)( (analog_value * (AVDD - AVSS) + ADC_INT_ROUND)/ADC_MAX_VALUE);
 }
 
-/** \brief Reads the first position of the buffer
- * 
- * 
- * \author Pedro Martins
- */
+
 uint16_t get_analog_value(void)
 {
     return (ADC1BUF0 & 0x3FF);
+}
+
+
+void __ISR(_ADC_VECTOR, IPL4SOFT) ADC_ISR(void)
+{
+    LATBbits.LATB4 = 1;
+    RESET_IF_ADC;
+    LATBbits.LATB4 = 0;
 }
