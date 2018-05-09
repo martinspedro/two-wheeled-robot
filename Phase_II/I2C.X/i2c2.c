@@ -2,7 +2,7 @@
 
 #include <proc/p32mx795f512l.h>
 
-#include "i2c1.h"
+#include "i2c2.h"
 
 /** Descriptive File Name
 
