@@ -91,16 +91,16 @@
 
 
 
-#define UART1_IPL  3
-#define UART1_IPSL 0
+#define UART1_IPL  3        //!< Interrupt Priority Level for UART 1
+#define UART1_IPSL 0        //!< Interrupt Sub Priority Level for UART 1
 
-#define UART1_TX_IPL  3
-#define UART1_RX_IPSL 0
+#define CLEAR_IF_UART1_TX               {IFS0bits.U1TXIF = 0;}      //!< Clear TX Interrupt Flag for UART 1
+#define CLEAR_IF_UART1_RX               {IFS0bits.U1RXIF = 0;}      //!< Clear RX Interrupt Flag for UART 1
+#define CLEAR_IF_UART1_ERROR_DETECTION  {IFS0bits.U1EIF = 0;}       //!< Clear Error Detection Interrupt Flag for UART 1
 
-#define CLEAR_IF_UART1_TX               {IFS0bits.U1TXIF = 0;}
-#define CLEAR_IF_UART1_RX               {IFS0bits.U1RXIF = 0;}
-#define CLEAR_IF_UART1_ERROR_DETECTION  {IFS0bits.U1EIF = 0;}
-
+#define IF_UART1_TX                 IFS0bits.U1TXIF     //!< TX Interrupt Flag for UART 1
+#define IF_UART1_RX                 IFS0bits.U1RXIF     //!< RX Interrupt Flag for UART 1
+#define IF_UART1_ERROR_DETECTION    IFS0bits.U1EIF      //!< Error Detection Interrupt Flag for UART 1
 
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
@@ -423,14 +423,14 @@ void put_string(char *s)
     while(*s != '\0')		// while doesn't read the termination character
     {
         put_char(*s);	
-	 s++;			
+        s++;			
     }
 }
 
 // Function to check a character from the Reception buffer
 // if the number of characters in buffer is zero, returns FALSE. If the number of characters is
 // different from zero, return TRUE (Note thta TRUE and FALSE are defined in detpic32.h -> nope!)
-char get_char(char *pchar)
+uint8_t get_char(char *pchar)
 {
     if ( rx_buffer.count == 0)	// if there are no characters in the buffer, return 0
     {
@@ -450,54 +450,52 @@ char get_char(char *pchar)
 
 
 
-// Interruption Routine
 void __ISR(_UART1_VECTOR, IPL3SOFT) UART_ISR(void)
 {
     // Interruption caused by TX module
-    if( IFS0bits.U1TXIF )	// if the interruption is caused by the TX module
+    if( IF_UART1_TX == 1 )
     {	
         // while the transmission buffer has at least one empty slot and is not full
-        while ( tx_buffer.count > 0 && !U1STAbits.UTXBF)
+        while ( tx_buffer.count > 0 && (UART1_TX_FULL_STATUS == 0) )
         {
-            U1TXREG = tx_buffer.data[tx_buffer.head];	// copy character pointed by head to U1TXREG
-            tx_buffer.head = (tx_buffer.head + 1) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
-            tx_buffer.count--;				// decrement count variable	
+            U1TXREG = tx_buffer.data[tx_buffer.head];	          
+            tx_buffer.head = (tx_buffer.head + 1) & INDEX_MASK;	  
+            tx_buffer.count--;				
         }
 
         if ( tx_buffer.count == 0)
         {
             DISABLE_UART1_TX_INT;
         }
-
-        IFS0bits.U1TXIF = 0;	// Reset UART TX interrupt flag
+        
+        CLEAR_IF_UART1_TX;
     }
     
     // Interruption caused by the RX module
-    if ( IFS0bits.U1RXIF )
+    if ( IF_UART1_RX == 1 )
     {
-        while (U1STAbits.URXDA )		// While the buffer has data, copy all 
-                            // characters in FIFO. URXDA - Receiver module 
-                            // Data availiable
+        while (UART1_RX_DATA_AVAILABLE_STATUS == 1)		
         {
-            rx_buffer.data[rx_buffer.tail] = U1RXREG;	// Read character from UART and write it to the 
-                            // tail position of the reception buffer
+            rx_buffer.data[rx_buffer.tail] = U1RXREG;	
+            rx_buffer.tail = (rx_buffer.tail + 1) & INDEX_MASK;	
 
-            rx_buffer.tail = (rx_buffer.tail + 1) & INDEX_MASK;	// increment tail variable (mod BUF_SIZE)
-
-            if ( rx_buffer.count < BUF_SIZE )	// reception buffer is not full
-            rx_buffer.count++;		// increment count variable
+            if ( rx_buffer.count < BUF_SIZE )	
+                rx_buffer.count++;		
             else
-            rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
-                                    // discard oldest change
+                rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;	
         }
 
-        IFS0bits.U1RXIF = 0;		// reset UART1 RX interrupt flag
+        CLEAR_IF_UART1_RX;		// reset UART1 RX interrupt flag
     }
 
-    // Interruption caused by errors (overrun errors in this case)
-    if ( U1STAbits.OERR )		
+    // Interruption caused by errors
+    if ( IF_UART1_ERROR_DETECTION == 1)		
     {
-        rx_buffer.overrun = 1;		// set flag to indicate that the error as occurred
-        U1STAbits.OERR = 0;		// reset UART1 error flag
+        if (UART1_OVERRUN_ERROR_OCCURRED == 1)
+        {
+            rx_buffer.overrun = 1;		// set flag to indicate that the error as occurred
+            CLEAR_OVERRUN_ERROR_FLAG;	// clear OVERRUN FLAG (after removing everything from buffer)
+            CLEAR_IF_UART1_ERROR_DETECTION;
+        }
     }
 }

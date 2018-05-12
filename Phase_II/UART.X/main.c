@@ -30,6 +30,7 @@
 void main(void){
     unsigned char c;
     uint8_t num;
+    
     config_UART1(115200, 8, 'N', 1);
     
     #ifdef DEBUG_INT_CIRCULAR_BUF
@@ -40,6 +41,7 @@ void main(void){
         ENABLE_UART1_TX_INT;
         ENABLE_UART1_RX_INT;
         
+        configure_global_interrupts();
         Enable_Global_Interrupts();
     #else
         ENABLE_UART1_PHERIPHERAL;
@@ -83,14 +85,17 @@ void main(void){
 
         #ifdef DEBUG_INT_CIRCULAR_BUF
         put_string("PIC32 UART Device-Driver\n");
-
-        if (get_char(&c) == UART_SUCCESS)	// if there is at least one character to be read from Uart
+        
+        while(1)
         {
-            if (c == 'S')		// if the pressed key is an 'S'
+            if (get_char(&c) == UART_SUCCESS)
             {
-                put_string("\nFoi premida a tecla S\n"); 	// Write a sentence
+                if (c == 'S')
+                {
+                    put_string("\nFoi premida a tecla S\n");
+                }
+                put_char(c);
             }
-        put_char(c);		// echo of the pressed key
         }
         #endif
 

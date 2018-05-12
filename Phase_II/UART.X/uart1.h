@@ -125,7 +125,7 @@ void flush_RX_buffer(void);
 void flush_TX_buffer(void);
 void put_char(char c);
 void put_string(char *s);
-char get_char(char *pchar);
+uint8_t get_char(char *pchar);
 
 #endif	/* UART1_H */
 
