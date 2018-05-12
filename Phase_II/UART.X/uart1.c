@@ -1,10 +1,10 @@
-/* 
- * File:   uart1.c
- * Author: martinspedro
- *
- * Created on March 13, 2018, 11:15 AM
+/** 
+ * \file   uart1.c
+ * \brief  UART1 Device Driver COnfiguration C File
+ * 
+ * \author Pedro Martins
+ * \date   Created on March 13, 2018, 11:15 AM
  */
-
 
 
 #include <xc.h>
@@ -12,50 +12,120 @@
 #include "uart1.h"
 
 
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
+#define DEFAULT_BAUDRATE 115200     //!< Default baudrate for UART 1 Pheripheral
+#define MIN_BAUDRATE     600        //!< Minimum accepted baudrate
+#define MAX_BAUDRATE     115200     //!< Maximum accepted baudrate
 
-#define UART_ERROR   1
-#define UART_SUCCESS 0
+#define DEFAULT_STOP_BITS 1         //!< Default number of stop bits
+#define DEFAULT_DATA_BITS 8         //!< Default number of data bits
 
-#define ENABLE_UART1    {U1MODEbits.ON = 1;}     // Activate UART 1
-#define ENABLE_UART1_TX {U1STAbits.UTXEN = 1;}   // Activate UART 1 TX Module
-#define ENABLE_UART1_RX {U1STAbits.URXEN = 1;}   // Activate UART 1 RX Module
-
-#define TRANSMIT_BREAK_BIT {U1STAbits.UTXBRK = 1;} // Transmit a break bit
-
-#define IS_UART1_TX_FULL  U1STAbits.UTXBF
-#define IS_UART1_TX_EMPTY U1STAbits.TRMT
-
-#define IS_UART1_RX_IDDLE U1STAbits.RIDLE
-#define UART1_RX_HAS_DATA U1STAbits.URXDA
-
-#define PARITY_ERROR_OCCURRED  U1STAbits.PERR
-#define FRAMING_ERROR_OCCURRED U1STAbits.FERR
-#define OVERRUN_ERROR_OCCURRED U1STAbits.OERR
-
-#define RESET_OVERRUN_ERROR_FLAG {U1STAbits.OERR = 0;}
-
-#define DEFAULT_BAUDRATE 115200
-#define MIN_BAUDRATE     600
-#define MAX_BAUDRATE     115200
-
-#define DEFAULT_STOP_BITS 1
-#define DEFAULT_DATA_BITS 8
-
-#define INTEGER_2_ASCII_OFFSET 0x30
-
-#define DISABLE_UART1    {U1MODEbits.ON = 0;}     // Disable UART 1
+#define INTEGER_2_ASCII_OFFSET 0x30 //!< Constant used to convert a decimal digit to ASCII
+#define SYNC_CHAR 0x55              //!< Synchronism character used in auto-baud detection mode
 
 
+#define DISABLE_WAKE_UP {U1MODEbits.WAKE = 0;}      //!< Disable MCU wake up from sleep state through UART
+#define ENABLE_WAKE_UP  {U1MODEbits.WAKE = 1;}      //!< Enable MCU wake up from sleep state through UART
 
-/* @brief UART Configuration Function
- * The baudrate equation is given by: 
- * $Baud-Rate = \frac{F_{PB}}{16 \cdot (UxBRG + 1)}$, 
- * which yelds the value of the baudrate register, 
- * $UxBRG = \frac{F_{PB}}{16 \cdot Baud-Rate} - 1$
+#define DISABLE_LOOPBACK {U1MODEbits.LPBACK = 0;}   //!< Disable Loopback Mode
+#define ENABLE_LOOPBACK  {U1MODEbits.LPBACK = 1;}   //!< Enable Loopback Mode
+
+#define DISABLE_AUTOMATIC_BAUD_RATE {U1MODEbits.ABAUD = 0;} //!< Enable Automatic Baud Rate detection for UART 1
+#define ENABLE_AUTOMATIC_BAUD_RATE  {U1MODEbits.ABAUD = 1;} //!< Disable Automatic Baud Rate detection for UART 1
+
+#define DISABLE_AUTO_ADDRESS_DETECT_MODE {U1STAbits.ADM_EN = 0;}    //!< Disable Auto Address Detection Mode for UART 1
+#define ENABLE_AUTO_ADDRESS_DETECT_MODE  {U1STAbits.ADM_EN = 1;}    //!< Enable Auto Address Detection Mode for UART 1
+
+#define ADDRESS_CHAR_DETECT_STATUS U1STAbits.ADDEN      //!< Status bit for Address mode Detection (used in multiprocessor UART Communications)
+#define AUTO_ADDRESS_MASK_BITS     U1STAbits.ADDR       //!< Automatic Address Mask bits, if automatic address detection is enabled
+
+/** \brief UART RX uses Positive (standard) logic
  * 
- * @author Pedro Martins
+ * UART RX represents a '1' with the high voltage level (VDD) and a '0' with 
+ * the low voltage level (GND)
+ *
+ * Therefore, UART RX Idle State is '1' (VDD)
  */
-void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits){
+#define USE_POSITIVE_LOGIC_FOR_RX_DATA {U1MODEbits.RXINV = 0;} 
+
+/** \brief UART RX uses Negative (inverse) logic
+ * 
+ * UART RX represents a '0' with the high voltage level (VDD) and a '1' with 
+ * the low voltage level (GND)
+ *
+ * Therefore, UART RX Idle State is '0' (GND)
+ */
+#define USE_NEGATIVE_LOGIC_FOR_RX_DATA {U1MODEbits.RXINV = 1;}
+
+
+/** \brief UART TX Polarity Inversion
+ * 
+ * If the IrDA mode is DISABLED (U1MODEbits.IREN = 0), the UART TX represents a 
+ * '1' with an high voltage level (VDD) and a '0' with the low voltage level (GND).
+ * Therefore, UART RX Idle State is '1' (VDD)
+ * 
+ * If the IrDA mode is ENABLED (U1MODEbits.IREN = 1), the UART TX represents a 
+ * '0' with an high voltage level (VDD) and a '1' with the low voltage level (GND).
+ * Therefore, UART RX Idle State is '0' (GND)
+ */
+#define USE_POSITIVE_LOGIC_FOR_TX_DATA {U1STAbits.UTXINV = 0;} 
+
+/** \brief UART TX Polarity Inversion
+ * 
+ * If the IrDA mode is DISABLED (U1MODEbits.IREN = 0), the UART TX represents a 
+ * '0' with an high voltage level (VDD) and a '1' with the low voltage level (GND).
+ * Therefore, UART RX Idle State is '0' (GND)
+ * 
+ * If the IrDA mode is ENABLED (U1MODEbits.IREN = 1), the UART TX represents a 
+ * '1' with an high voltage level (VDD) and a '0' with the low voltage level (GND).
+ * Therefore, UART RX Idle State is '1' (VDD)
+ */
+#define USE_NEGATIVE_LOGIC_FOR_TX_DATA {U1STAbits.UTXINV = 1;}
+
+
+
+#define UART1_IPL  3
+#define UART1_IPSL 0
+
+#define UART1_TX_IPL  3
+#define UART1_RX_IPSL 0
+
+#define ENABLE_UART1_INT  {IEC0bits.U1EIE = 1;}
+#define DISABLE_UART1_INT {IEC0bits.U1EIE = 0;}
+#define ENABLE_UART1_TX_INT  {IEC0bits.U1TXIE = 1;}
+#define DISABLE_UART1_TX_INT {IEC0bits.U1TXIE = 0;}
+#define ENABLE_UART1_RX_INT  {IEC0bits.U1RXIE = 1;}
+#define DISABLE_UART1_RX_INT {IEC0bits.U1RXIE = 0;}
+
+#define CLEAR_IF_UART1_TX {IFS0bits.U1TXIF = 0;}
+#define CLEAR_IF_UART1_RX {IFS0bits.U1RXIF = 0;}
+#define CLEAR_IF_UART1    {IFS0bits.U1EIF = 0;}
+
+
+
+/*******************************************************************************
+ *                         CLASS METHODS
+ ******************************************************************************/
+/** \brief UART Configuration Function
+ * 
+ * \param baudrate   Desired baudrate for UART operation
+ * \param data_bits  Desired data bits for UART communications
+ * \param parity     Parity tyope desired for UART 
+ * \param stop_bits  Desired number of stop bits for UART communications
+ * 
+ * The baudrate equation is given by: 
+ * \f[Baud-Rate = \frac{F_{PB}}{16 \cdot (UxBRG + 1)}\f]
+ * which yelds the value of the baudrate register, 
+ * \f[UxBRG = \frac{F_{PB}}{16 \cdot Baud-Rate} - 1\f]
+ * 
+ * \author Pedro Martins
+ */
+void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits)
+{
+    DISABLE_UART1_PHERIPHERAL;
+    
     /***************************************************************************
     *                      VALIDATE USER INPUT 
     ***************************************************************************/
@@ -70,8 +140,54 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
     
    
     /***************************************************************************
-    *                            USER SETUP 
+    *                        GENERAL SETUP 
     ***************************************************************************/
+   
+    /* Continue UART operation in Idle Mode */
+    U1MODEbits.SIDL = 0;
+    
+    /* Disable IrDA Encoder and Decoder */
+    U1MODEbits.IREN = 0; 
+    
+    /* Set Mode Selection for U1RTS to flow control mode
+     * 
+     * RTSMD: Mode Selection for UxRTS Pin bit
+     *   1 = UxRTS pin is in Simplex mode
+     *   0 = UxRTS pin is in Flow Control mode
+     */
+    U1MODEbits.RTSMD = 0;     
+    
+    
+    /* Enable UxTX & UxRX and disable the usage of UxCTS, UxRTS pins
+     * 
+     * UEN<1:0>: UARTx Enable bits (4)
+     *  11 = UxTX, UxRX and UxBCLK pins are enabled and used; UxCTS pin is controlled by corresponding
+     *       bits in the PORTx register
+     *  10 = UxTX, UxRX, UxCTS and UxRTS pins are enabled and used
+     *  01 = UxTX, UxRX and UxRTS pins are enabled and used; UxCTS pin is controlled by corresponding
+     *       bits in the PORTx register
+     *  00 = UxTX and UxRX pins are enabled and used; UxCTS and UxRTS/UxBCLK pins are controlled by
+     *       corresponding bits in the PORTx register
+     */
+    U1MODEbits.UEN = 0b00;
+    
+    /* Disable Wake-up through UART */
+    DISABLE_WAKE_UP;
+    
+    /* Disable Loopback mode */
+    DISABLE_LOOPBACK;
+    
+    /* Disable Automatic Baud Rate */
+    DISABLE_AUTOMATIC_BAUD_RATE
+    
+    /*  UxRX Idle state is '1'
+     * '1' = VDD
+     * '0' = GND
+     */
+    USE_POSITIVE_LOGIC_FOR_RX_DATA;
+    
+    /* Disable Automatic Address Detection Mode (used in a multiprocessor environment)*/
+    DISABLE_AUTO_ADDRESS_DETECT_MODE;
     
     /* High Baud Rate Enable bit
      * 1 - High speed mode enable -> 4x baud clock enable
@@ -83,10 +199,18 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      */
     U1MODEbits.BRGH = 0;
     
-    
-    /* Baud-Rate value for the Baud Rate Divisor bits register
-     *
+    /*  UxTX Idle state is '1'
+     * '1' = VDD
+     * '0' = GND
      */
+    USE_POSITIVE_LOGIC_FOR_TX_DATA;
+    
+ 
+    /***************************************************************************
+    *                            USER SETUP 
+    ***************************************************************************/
+    
+    /* Baud-Rate value for the Baud Rate Divisor bits register */
     U1BRG = (uint16_t) (PBCLK / (16 * baudrate) - 1 );
 
     
@@ -128,98 +252,50 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
     U1MODEbits.STSEL =  stop_bits - 1;
     
     /***************************************************************************
-    *                        GENERAL SETUP 
+    *                            INTERRUPTS
     ***************************************************************************/
-   
-    /* SIDL: Stop in Idle Mode bit
-     *  1 = Discontinue operation when device enters Idle mode
-     *  0 = Continue operation in Idle mode 
-     */
-    U1MODEbits.SIDL = 0;
     
-    /* Disable IrDA Encoder and Decoder Enable bit
+    /* TX Interrupt is generated when there is at least one empty space
      * 
-     * IREN: IrDA Encoder and Decoder Enable bit
-     *  1 = IrDA is enabled
-     *  0 = IrDA is disabled
-     */
-    U1MODEbits.IREN = 0; 
-    
-    /* Set Mode Selection for U1RTS to flow control mode
+     * TX Interrupt Mode Selection bits (1)
+     *   For 4-level deep FIFO UART modules:
+     *   11 = Reserved, do not use
+     *   10 = Interrupt is generated when the transmit buffer becomes empty
+     *   01 = Interrupt is generated when all characters have been transmitted
+     *   00 = Interrupt is generated when the transmit buffer contains at least one empty space
      * 
-     * RTSMD: Mode Selection for UxRTS Pin bit
-     *   1 = UxRTS pin is in Simplex mode
-     *   0 = UxRTS pin is in Flow Control mode
+     *   For 8-level deep FIFO UART modules:
+     *   11 = Reserved, do not use
+     *   10 = Interrupt is generated and asserted while the transmit buffer is empty
+     *   01 = Interrupt is generated and asserted when all characters have been transmitted
+     *   00 = Interrupt is generated and asserted while the transmit buffer contains at least one empty space
      */
-    U1MODEbits.RTSMD = 0;     
+    U1STAbits.UTXISEL = 0b00;
     
-    
-    /* Enable UxTX & UxRX and disable the usage of UxCTS, UxRTS pins
+    /* RX interrupt is generated when there is at least one received character
      * 
-     * UEN<1:0>: UARTx Enable bits (4)
-     *  11 = UxTX, UxRX and UxBCLK pins are enabled and used; UxCTS pin is controlled by corresponding
-     *       bits in the PORTx register
-     *  10 = UxTX, UxRX, UxCTS and UxRTS pins are enabled and used
-     *  01 = UxTX, UxRX and UxRTS pins are enabled and used; UxCTS pin is controlled by corresponding
-     *       bits in the PORTx register
-     *  00 = UxTX and UxRX pins are enabled and used; UxCTS and UxRTS/UxBCLK pins are controlled by
-     *       corresponding bits in the PORTx register
-     */
-    U1MODEbits.UEN = 0b00;
-    
-    /* Disable Wake-up through UART
+     * Receive Interrupt Mode Selection bit (1)
+     *   For 4-level deep FIFO UART modules:
+     *     11 = Interrupt flag bit is set when receive buffer becomes full (i.e., has 4 data characters)
+     *     10 = Interrupt flag bit is set when receive buffer becomes 3/4 full (i.e., has 3 data characters)
+     *     0x = Interrupt flag bit is set when a character is received
      * 
-     * WAKE: Enable Wake-up on Start bit Detect During Sleep Mode bit
-     *  1 = Wake-up enabled
-     *  0 = Wake-up disabled
+     *   For 8-level deep FIFO UART modules:
+     *     11 = Reserved; do not use
+     *     10 = Interrupt flag bit is asserted while receive buffer is 3/4 or more full (i.e., has 6 or more data characters)
+     *     01 = Interrupt flag bit is asserted while receive buffer is 1/2 or more full (i.e., has 4 or more data characters)
+     *     00 = Interrupt flag bit is asserted while receive buffer is not empty (i.e., has at least 1 data character)
      */
-    U1MODEbits.WAKE = 0;
+    U1STAbits.URXISEL = 0b00;
     
-    /* Disable Loopback mode
-     * 
-     * LPBACK: UARTx Loopback Mode Select bit
-     *  1 = Loopback mode is enabled
-     *  0 = Loopback mode is disabled
-     */
-    U1MODEbits.LPBACK = 0;
-    
-    
-    /* Disable Automatic Baud Rate
-     * 
-     * ABAUD: Auto-Baud Enable bit
-     *  1 = Enable baud rate measurement on the next character ? requires reception of Sync character
-     *      (0x55); cleared by hardware upon completion
-     *  0 = Baud rate measurement disabled or completed
-     */
-    U1MODEbits.ABAUD = 0;
-    
-    /* Use standard logic in UART
-     * '0' -> Low
-     * '1' -> High
-     * 
-     * RXINV: Receive Polarity Inversion bit
-     *  1 = UxRX Idle state is ?0?
-     *  0 = UxRX Idle state is ?1?
-     */
-    U1MODEbits.RXINV = 0;
+    /* Set Interrupt Priority and Sub-priority Levels */
+    IPC6bits.U1IP = UART1_IPL  & 0x07;
+    IPC6bits.U1IS = UART1_IPSL & 0x03;
 }
 
 
-/* @brief UART enable function
- * @author Pedro Martins
- * 
- * Enables the tranmission (TX) and Reception (RX) modules of the UART 1 and 
- * then activate the UART 1 operation
- * 
- */
-void enable_UART1(void){
-    ENABLE_UART1_TX;
-    ENABLE_UART1_RX;
-    ENABLE_UART1; 
-}
 
-
-/* @brief Blocking UART send char function
+/** @brief Blocking UART send char function
  * @author Pedro Martins
  * 
  * Verifies if the UART TX buffer is not full and then sends a character using 
@@ -227,13 +303,13 @@ void enable_UART1(void){
  * 
  */
 uint8_t send_char(unsigned char c){
-    while(IS_UART1_TX_FULL);
+    while(UART1_TX_FULL_STATUS);
     
     U1TXREG = c;
     return UART_SUCCESS;
 }
 
-/* @brief Blocking UART read char function
+/** @brief Blocking UART read char function
  * @author Pedro Martins
  * 
  * Waits while UART RX buffer does not have data and then reads a character using 
@@ -246,12 +322,12 @@ unsigned char read_char(void){
     unsigned char c;
     
     
-    while(!UART1_RX_HAS_DATA);
+    while(!UART1_RX_DATA_AVAILABLE_STATUS);
     
-    if(OVERRUN_ERROR_OCCURRED)
+    if(UART1_OVERRUN_ERROR_OCCURRED)
     {
         c = U1RXREG;
-        RESET_OVERRUN_ERROR_FLAG
+        CLEAR_OVERRUN_ERROR_FLAG;
     }
     else
     {
@@ -261,7 +337,7 @@ unsigned char read_char(void){
     return c;
 }
 
-/* @brief Blocking UART print 8 bit integer function
+/** @brief Blocking UART print 8 bit integer function
  * @author Pedro Martins
  * 
  * Sends a 8 bit integer via UART1
@@ -299,7 +375,7 @@ uint8_t print_uint16(uint16_t value){
     send_char(first_nibble);
 }
 
-/* @brief Blocking UART read 8 bit integer function
+/** @brief Blocking UART read 8 bit integer function
  * @author Pedro Martins
  * 
  * Sends a 8 bit integer via UART1
