@@ -1,69 +1,45 @@
-/* ************************************************************************** */
-
+/** 
+ * \file   i2c2.c
+ * \brief  I2C2 module configuration and device driver
+ * 
+ * \author André Gradim
+ * \date   Created on May 8, 2018, 7:50 PM
+ */
 #include <proc/p32mx795f512l.h>
-
 #include "i2c2.h"
 
-/** Descriptive File Name
 
-  @Company
-    Company Name
-
-  @File Name
-    filename.c
-
-  @Summary
-    Brief description of the file.
-
-  @Description
-    Describe the purpose of this file.
- */
-
-
-/* ************************************************************************** */
-/* ************************************************************************** */
-// Section: Interface Functions                                               */
-/* ************************************************************************** */
-/* ************************************************************************** */
-
-/*  A brief description of a section can be given directly below the section
-    banner.
- */
-
-// *****************************************************************************
+//* ************************************************************************** */
+// Section: Macros                                                             */
+//* ************************************************************************** */
 
 #define NACK 1
 #define ACK 0
 
 
-#define masterDisabled() (I2C2CONbits.SEN == 0 && I2C2CONbits.PEN == 0 && \
-    I2C2CONbits.RSEN == 0 && I2C2CONbits.RCEN == 0 && I2C2CONbits.ACKEN == 0)
+
+//* ************************************************************************** */
+// Section: Interface Functions                                                */
+//* ************************************************************************** */
+
+//To active interrupts remove comment (not fully implemented yet)
+//#define INTERRUPTS_ON
 
 
-void openI2C2( ){//int sendAck){
+
+void openI2C2( ){
+    I2C2CONbits.A10M = 0;       //use 7 bit slave address
+    //I2C2CONbits.DISSLW = 0;   // slew rate disable for 400kHz
     
-    I2C2CONbits.A10M = 0; //7 bit slave address
-    //I2C2CONbits.DISSLW = 0;
+    I2C2BRG = 0x02C;            //set the brg for 400kHz
     
-    /*if(sendAck == 1){
-        I2C2CONbits.ACKDT = 0; //|ACKs sent
-    }else{
-        I2C2CONbits.ACKDT = 1; //NACK sent
-    }*/
-    
-    I2C2BRG = 0x02C; //set the brg for 400kHz
-    
-    I2C2CONbits.ON = 1;   
+    I2C2CONbits.ON = 1;         // enable i2c2 module
 }
 
 
 
 void closeI2C2(){
-    
-    // simply disable the module
-    
-    I2C2CONbits.ON = 0;
-    
+    I2C2CONbits.ON = 0;         // Disable module
 }
 
 int startI2C2(){
@@ -183,29 +159,39 @@ int dataReadyI2C2(void){
     return (I2C2STATbits.RBF);
 }
 
-unsigned char masterReadI2C2(void){
-    
+
+uint8_t masterReadI2C2(void){
+    #ifndef INTERRUPTS_ON
     while(idleI2C2() == 0 ); 
+    #endif
     //master isn't disable (5 least significant bits not 0)
     
     I2C2CONbits.RCEN = 1;
+    #ifdef DEBUG_I2C
     putchar('n');
-    //#ifndef INTERRUPTS_ON
+    #endif
+    #ifndef INTERRUPTS_ON
+
     while(I2C2STATbits.RBF == 0); //wait until reception is done
-    //#endif
+    
+    #endif
     //Next it's needed to send acknowledge sequence (|ACK or NACK))
-    unsigned char temp = I2C2RCV;
+    uint8_t temp = I2C2RCV;
     return temp;
 }
 
 uint8_t masterWriteI2C2(uint8_t data_out){
+     #ifndef INTERRUPTS_ON
     while(!idleI2C2());
+    #endif
     I2C2TRN = data_out;
     
     #ifndef INTERRUPTS_ON
         while(I2C2STATbits.TRSTAT == 1);
     #endif 
     //Next needs to check for |ACK sequence
+
+    //return() -> add bus collision detection
 }
 
 void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size){
