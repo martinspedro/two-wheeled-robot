@@ -90,16 +90,11 @@ void main(void){
         {
             if (get_char(&c) == UART_SUCCESS)
             {
-                if (c == 'S')
-                {
-                    put_string("\nFoi premida a tecla S\n");
-                }
                 put_char(c);
             }
         }
         #endif
 
-        send_char('\n');
         PORTAbits.RA3 = 1;
     }
 }

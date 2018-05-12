@@ -8,10 +8,10 @@
 
 
 #include <xc.h>
-#include <sys/attribs.h>
 
 #include "../global.h"
 #include "../interrupts.h"
+
 #include "circular_buffer.h"
 #include "uart1.h"
 
@@ -45,6 +45,8 @@
 #define ADDRESS_CHAR_DETECT_STATUS U1STAbits.ADDEN      //!< Status bit for Address mode Detection (used in multiprocessor UART Communications)
 #define AUTO_ADDRESS_MASK_BITS     U1STAbits.ADDR       //!< Automatic Address Mask bits, if automatic address detection is enabled
 
+#define UART1_SIMPLEX_MODE_OPERATION {U1MODEbits.RTSMD = 1;}        //!< Ready to Send (RTS) operates in Simplex Mode
+#define UART1_FLOW_CONTROL_MODE_OPERATION {U1MODEbits.RTSMD = 0;}   //!< Ready to Send (RTS) operates in Flow Control Mode
 
 /** \brief UART RX uses Positive (standard) logic
  * 
@@ -102,58 +104,53 @@
 #define IF_UART1_RX                 IFS0bits.U1RXIF     //!< RX Interrupt Flag for UART 1
 #define IF_UART1_ERROR_DETECTION    IFS0bits.U1EIF      //!< Error Detection Interrupt Flag for UART 1
 
+
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/
 
-volatile circularBuffer tx_buffer;	//!< Software circular transmission buffer
-volatile circularBuffer rx_buffer;	//!< Software circular reception buffer
-
+volatile circularBuffer tx_buffer; //!< Transmission circular buffer for TX data
+volatile circularBuffer rx_buffer; //!< Reception circular buffer for RX data
 
 
 /*******************************************************************************
  *                         CLASS METHODS
  ******************************************************************************/
-void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits)
-{
+void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits) {
+    // Fully disable UART 1, all related interruptions and clear  interruptions flag
     DISABLE_UART1_PHERIPHERAL;
     DISABLE_UART1_ALL_INTERRUPTS;
     CLEAR_IF_UART1_TX;
     CLEAR_IF_UART1_RX;
     CLEAR_IF_UART1_ERROR_DETECTION;
-    
+
     /***************************************************************************
-    *                      VALIDATE USER INPUT 
-    ***************************************************************************/
+     *                      VALIDATE USER INPUT 
+     ***************************************************************************/
     // Truncate desired baudrate
     baudrate = (baudrate < MIN_BAUDRATE || baudrate > MAX_BAUDRATE) ? DEFAULT_BAUDRATE : baudrate;
-    
+
     // truncate invalid data bits
     data_bits = (data_bits != 8 || data_bits != 9) ? DEFAULT_DATA_BITS : data_bits;
-    
+
     // Truncate stop bits
     stop_bits = (stop_bits != 1 || stop_bits != 2) ? DEFAULT_STOP_BITS : stop_bits;
-    
-   
+
+
     /***************************************************************************
-    *                        GENERAL SETUP 
-    ***************************************************************************/
-   
+     *                        GENERAL SETUP 
+     ***************************************************************************/
+
     /* Continue UART operation in Idle Mode */
     U1MODEbits.SIDL = 0;
-    
+
     /* Disable IrDA Encoder and Decoder */
-    U1MODEbits.IREN = 0; 
-    
-    /* Set Mode Selection for U1RTS to flow control mode
-     * 
-     * RTSMD: Mode Selection for UxRTS Pin bit
-     *   1 = UxRTS pin is in Simplex mode
-     *   0 = UxRTS pin is in Flow Control mode
-     */
-    U1MODEbits.RTSMD = 0;     
-    
-    
+    U1MODEbits.IREN = 0;
+
+    /* Ready to send operates in Flow Control Mode */
+    UART1_FLOW_CONTROL_MODE_OPERATION;
+
+
     /* Enable UxTX & UxRX and disable the usage of UxCTS, UxRTS pins
      * 
      * UEN<1:0>: UARTx Enable bits (4)
@@ -166,50 +163,43 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      *       corresponding bits in the PORTx register
      */
     U1MODEbits.UEN = 0b00;
-    
+
     /* Disable Wake-up through UART */
     DISABLE_WAKE_UP;
-    
+
     /* Disable Loopback mode */
     DISABLE_LOOPBACK;
-    
+
     /* Disable Automatic Baud Rate */
     DISABLE_AUTOMATIC_BAUD_RATE
-    
+
     /*  UxRX Idle state is '1'
      * '1' = VDD
      * '0' = GND
      */
     USE_POSITIVE_LOGIC_FOR_RX_DATA;
-    
+
     /* Disable Automatic Address Detection Mode (used in a multiprocessor environment)*/
     DISABLE_AUTO_ADDRESS_DETECT_MODE;
-    
-    /* High Baud Rate Enable bit
-     * 1 - High speed mode enable -> 4x baud clock enable
-     *     Uses 4x the baud rate clock and uses each sample to determine the 
-     *     logic level
-     * 0 - High speed mode disable -> 16x baud clock enable
-     *     Uses 16x the baud rate clock and uses 4 samples to determine the 
-     *     logic level
-     */
+
+    /* High Speed Mode Disabled - uses 4 samples to determine the logic level */
     U1MODEbits.BRGH = 0;
-    
+
     /*  UxTX Idle state is '1'
      * '1' = VDD
      * '0' = GND
      */
     USE_POSITIVE_LOGIC_FOR_TX_DATA;
-    
- 
-    /***************************************************************************
-    *                            USER SETUP 
-    ***************************************************************************/
-    
-    /* Baud-Rate value for the Baud Rate Divisor bits register */
-    U1BRG = (uint16_t) (PBCLK / (16 * baudrate) - 1 );
 
-    
+
+    /***************************************************************************
+     *                            USER SETUP 
+     ***************************************************************************/
+
+    /* Baud-Rate value for the Baud Rate Divisor bits register */
+    U1BRG = (uint16_t) (PBCLK / (16 * baudrate) - 1);
+
+
     /* Set parity and data selection bits
      * 
      * 11 -> 9 bit data, no parity
@@ -217,40 +207,36 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      * 01 -> 8 bit data, even parity
      * 00 -> 8 bit data, no parity 
      */
-    if (data_bits == 8)
-    {
-        switch (parity)
-        {
-            case 'E':       // Even parity
+    if (data_bits == 8) {
+        switch (parity) {
+            case 'E': // Even parity
                 U1MODEbits.PDSEL = 0b01;
                 break;
-            case 'O':       // Odd parity
+            case 'O': // Odd parity
                 U1MODEbits.PDSEL = 0b10;
                 break;
-            case 'N':       // No parity & default value
+            case 'N': // No parity & default value
             default:
-                U1MODEbits.PDSEL = 0b00; 
+                U1MODEbits.PDSEL = 0b00;
                 break;
         }
-    }
-    else 
-    {   
+    } else {
         // No parity options available for 9 bits
-        U1MODEbits.PDSEL = 0b11; 
+        U1MODEbits.PDSEL = 0b11;
     }
-    
-     /* Sets the stop bits
-      * 
-      * STSEL: Stop Selection bit
-      *   1 = 2 Stop bits
-      *   0 = 1 Stop bit
-      */
-    U1MODEbits.STSEL =  stop_bits - 1;
-    
+
+    /* Sets the stop bits
+     * 
+     * STSEL: Stop Selection bit
+     *   1 = 2 Stop bits
+     *   0 = 1 Stop bit
+     */
+    U1MODEbits.STSEL = stop_bits - 1;
+
     /***************************************************************************
-    *                            INTERRUPTS
-    ***************************************************************************/
-    
+     *                            INTERRUPTS
+     ***************************************************************************/
+#ifdef USE_INTERRUPTS
     /* TX Interrupt is generated when there is at least one empty space
      * 
      * TX Interrupt Mode Selection bits (1)
@@ -267,7 +253,7 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      *   00 = Interrupt is generated and asserted while the transmit buffer contains at least one empty space
      */
     U1STAbits.UTXISEL = 0b00;
-    
+
     /* RX interrupt is generated when there is at least one received character
      * 
      * Receive Interrupt Mode Selection bit (1)
@@ -283,218 +269,183 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
      *     00 = Interrupt flag bit is asserted while receive buffer is not empty (i.e., has at least 1 data character)
      */
     U1STAbits.URXISEL = 0b00;
-    
+
     /* Set Interrupt Priority and Sub-priority Levels */
-    IPC6bits.U1IP = UART1_IPL  & 0x07;
+    IPC6bits.U1IP = UART1_IPL & 0x07;
     IPC6bits.U1IS = UART1_IPSL & 0x03;
+#endif
 }
 
 
-/** @brief Blocking UART send char function
- * @author Pedro Martins
- * 
- * Verifies if the UART TX buffer is not full and then sends a character using 
- * the UART1 module
- * 
- */
-uint8_t send_char(unsigned char c){
-    while(UART1_TX_FULL_STATUS);
-    
-    U1TXREG = c;
-    return UART_SUCCESS;
-}
-
-/** @brief Blocking UART read char function
- * @author Pedro Martins
- * 
- * Waits while UART RX buffer does not have data and then reads a character using 
- * the UART1 module
- * 
- * @TODO: Implement error verification features and inform to caller an error as occured
- * 
- */
-unsigned char read_char(void){
-    unsigned char c;
-    
-    
-    while(!UART1_RX_DATA_AVAILABLE_STATUS);
-    
-    if(UART1_OVERRUN_ERROR_OCCURRED)
-    {
-        c = U1RXREG;
-        CLEAR_OVERRUN_ERROR_FLAG;
-    }
-    else
-    {
-        c = U1RXREG;
-    }
-    
-    return c;
-}
-
-/** @brief Blocking UART print 8 bit integer function
- * @author Pedro Martins
- * 
- * Sends a 8 bit integer via UART1
- * Uses send_char function
- * 
- */
-uint8_t print_uint8(uint8_t value){
-    uint8_t high = (value / 10 ) + INTEGER_2_ASCII_OFFSET;
-    uint8_t low  = (value % 10 ) + INTEGER_2_ASCII_OFFSET;
-    
-    send_char(high);
-    send_char(low);
-    
-    return UART_SUCCESS;
-}
-
-/* @brief Blocking UART print 16 bit integer function
- * @author Pedro Martins
- * 
- * Sends a 8 bit integer via UART1
- * Uses send_char function
- * 
- */
-uint8_t print_uint16(uint16_t value){        
-    uint8_t fifth_nibble =    (value / 10000 ) + INTEGER_2_ASCII_OFFSET;
-    uint8_t fourth_nibble = ( (value % 10000 ) / 1000 ) + INTEGER_2_ASCII_OFFSET;
-    uint8_t third_nibble  = ( (value % 1000 ) / 100   ) + INTEGER_2_ASCII_OFFSET;
-    uint8_t second_nibble = ( (value % 100 ) / 10     )     + INTEGER_2_ASCII_OFFSET;
-    uint8_t first_nibble  = ( (value % 10 )       ) + INTEGER_2_ASCII_OFFSET;
-    
-    send_char(fifth_nibble);
-    send_char(fourth_nibble);
-    send_char(third_nibble);
-    send_char(second_nibble);
-    send_char(first_nibble);
-}
-
-/** @brief Blocking UART read 8 bit integer function
- * @author Pedro Martins
- * 
- * Sends a 8 bit integer via UART1
- * Uses send_char function
- * 
- */
-uint8_t read_uint8(void){
-    uint8_t high = read_char() - INTEGER_2_ASCII_OFFSET;
-    uint8_t low  = read_char() - INTEGER_2_ASCII_OFFSET;
-    
-    return high * 10 + low;
-}
-
-void flush_RX_buffer(void)	
+void flush_RX_buffer(void) 
 {
-    DISABLE_UART1_RX_INT;	// Disable Interruptions for the RX module while it is being initialized
+    DISABLE_UART1_RX_INT;   // Begin Critical Section
 
-    rx_buffer.head = 0;		
-    rx_buffer.tail = 0;		
+    rx_buffer.head = 0;
+    rx_buffer.tail = 0;
     rx_buffer.head = 0;
 
-    ENABLE_UART1_RX_INT;		
+    ENABLE_UART1_RX_INT;    // End Critical Section
 }
 
-void flush_TX_buffer(void)	
-{
-    DISABLE_UART1_TX_INT;	// Disable Interruptions for the TX module while it is being initialized
 
-    tx_buffer.head = 0;		
-    tx_buffer.tail = 0;		
+void flush_TX_buffer(void) 
+{
+    DISABLE_UART1_TX_INT;   // Begin Critical Section
+
+    tx_buffer.head = 0;
+    tx_buffer.tail = 0;
     tx_buffer.head = 0;
 
-    ENABLE_UART1_TX_INT;		
+    ENABLE_UART1_TX_INT;    // End Critical Section
 }
 
-void put_char(char c)
-{
-    while(tx_buffer.count == BUF_SIZE);	// Wait while buffer is full
 
-    tx_buffer.data[tx_buffer.tail] = c;		// Copy character to transmission buffer at position tail
-    tx_buffer.tail = (tx_buffer.tail + 1) & INDEX_MASK;	// Inncrement tail index with the module of BUF_SIZE
+void put_char(char c) {
+#ifndef USE_INTERRUPTS
+    while (UART1_TX_FULL_STATUS);
 
-    DISABLE_UART1_TX_INT;		// Begin of critical section
-    tx_buffer.count++;			
-    ENABLE_UART1_TX_INT;		// End of critical section
+    U1TXREG = c;
+#else
+    while (tx_buffer.count == BUF_SIZE); // Wait while buffer is full
+
+    tx_buffer.data[tx_buffer.tail] = c;
+    tx_buffer.tail = (tx_buffer.tail + 1) & INDEX_MASK;
+
+    DISABLE_UART1_TX_INT; // Begin of critical section
+    tx_buffer.count++;
+    ENABLE_UART1_TX_INT; // End of critical section
+#endif
 }
 
-void put_string(char *s)
+
+void put_uint8(uint8_t value) 
 {
-    while(*s != '\0')		// while doesn't read the termination character
+    put_char( (value / 10) + INTEGER_2_ASCII_OFFSET);   // High 
+    put_char( (value % 10) + INTEGER_2_ASCII_OFFSET);   // Low
+}
+
+
+void put_uint16(uint16_t value) 
+{
+    put_char( (value / 10000)          + INTEGER_2_ASCII_OFFSET );     // fifth  nibble
+    put_char( ((value % 10000) / 1000) + INTEGER_2_ASCII_OFFSET );     // fourth nibble
+    put_char( ((value % 1000) / 100)   + INTEGER_2_ASCII_OFFSET );     // third  nibble
+    put_char( ((value % 100) / 10)     + INTEGER_2_ASCII_OFFSET );     // second nibble
+    put_char( ((value % 10))           + INTEGER_2_ASCII_OFFSET );     // first  nibble
+}
+
+
+void put_string(char *s) 
+{
+    while (*s != '\0')
     {
-        put_char(*s);	
-        s++;			
+        put_char(*s);
+        s++;
     }
 }
 
-// Function to check a character from the Reception buffer
-// if the number of characters in buffer is zero, returns FALSE. If the number of characters is
-// different from zero, return TRUE (Note thta TRUE and FALSE are defined in detpic32.h -> nope!)
-uint8_t get_char(char *pchar)
+
+uint8_t get_char(char *p_char) 
 {
-    if ( rx_buffer.count == 0)	// if there are no characters in the buffer, return 0
-    {
+#ifndef USE_INTERRUPTS
+    while (!UART1_RX_DATA_AVAILABLE_STATUS);
+    
+    *p_char = U1RXREG;
+
+    if (UART1_OVERRUN_ERROR_OCCURRED) {
+        CLEAR_OVERRUN_ERROR_FLAG;
+    }
+    
+    return UART_SUCCESS;
+#else
+    if (rx_buffer.count == 0) {
         return UART_ERROR;
     }
-    
-    DISABLE_UART1_RX_INT;	// Disbale Uart Receiver module Interrupts
-    
-    *pchar = rx_buffer.data[rx_buffer.head];	// copy character pointed by head to *pchar
-    rx_buffer.count--;			// decrement count variable
-    rx_buffer.head = (rx_buffer.head++) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
-    
-    ENABLE_UART1_RX_INT;	// Enable Uart Receiver module Interrupts
-    
-    return UART_SUCCESS;		// return true (there at least one character in the buffer)
+
+    DISABLE_UART1_RX_INT;
+
+    *p_char = rx_buffer.data[rx_buffer.head];
+    rx_buffer.count--;
+    rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;
+
+    ENABLE_UART1_RX_INT;
+
+    return UART_SUCCESS;
+#endif
 }
 
 
-
-void __ISR(_UART1_VECTOR, IPL3SOFT) UART_ISR(void)
+uint8_t get_uint8(uint8_t *p_uint8) 
 {
+    uint8_t high, low, return_high, return_low;
+    
+    return_high = get_char(&high);
+    return_low  = get_char(&low);
+
+    *p_uint8 = ( (high - INTEGER_2_ASCII_OFFSET )* 10 + low - INTEGER_2_ASCII_OFFSET);
+    
+    return (return_high | return_low);
+}
+
+
+/** \brief ISR for UART 1
+ * 
+ * \pre    Global Interrupts must be configured and enabled
+ * \pre    UART 1 must be configured and enabled
+ * 
+ * \param  None.
+ * \return None.
+ * 
+ * Interruption Service Routine for UART 1
+ * Deals with TX and RX interrupts, manipulating the Circular Buffer
+ * The ISR can handle OVERRUN errors, signaling them through the rx_buffer.overrun 
+ * flag
+ * 
+ * The Interruption Priority Level is 3 and the compiler must write software to
+ * perform the context switching (IPL3SOFT)
+ * 
+ * \author Pedro Martins
+ */
+void __ISR(_UART1_VECTOR, IPL3SOFT) UART_ISR(void) {
     // Interruption caused by TX module
-    if( IF_UART1_TX == 1 )
-    {	
+    if (IF_UART1_TX == 1) 
+    {
         // while the transmission buffer has at least one empty slot and is not full
-        while ( tx_buffer.count > 0 && (UART1_TX_FULL_STATUS == 0) )
-        {
-            U1TXREG = tx_buffer.data[tx_buffer.head];	          
-            tx_buffer.head = (tx_buffer.head + 1) & INDEX_MASK;	  
-            tx_buffer.count--;				
+        while (tx_buffer.count > 0 && (UART1_TX_FULL_STATUS == 0)) {
+            U1TXREG = tx_buffer.data[tx_buffer.head];
+            tx_buffer.head = (tx_buffer.head + 1) & INDEX_MASK;
+            tx_buffer.count--;
         }
 
-        if ( tx_buffer.count == 0)
-        {
+        if (tx_buffer.count == 0) {
             DISABLE_UART1_TX_INT;
         }
-        
+
         CLEAR_IF_UART1_TX;
     }
-    
+
     // Interruption caused by the RX module
-    if ( IF_UART1_RX == 1 )
+    if (IF_UART1_RX == 1) 
     {
-        while (UART1_RX_DATA_AVAILABLE_STATUS == 1)		
-        {
-            rx_buffer.data[rx_buffer.tail] = U1RXREG;	
-            rx_buffer.tail = (rx_buffer.tail + 1) & INDEX_MASK;	
+        while (UART1_RX_DATA_AVAILABLE_STATUS == 1) {
+            rx_buffer.data[rx_buffer.tail] = U1RXREG;
+            rx_buffer.tail = (rx_buffer.tail + 1) & INDEX_MASK;
 
-            if ( rx_buffer.count < BUF_SIZE )	
-                rx_buffer.count++;		
+            if (rx_buffer.count < BUF_SIZE)
+                rx_buffer.count++;
             else
-                rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;	
+                rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;
         }
-
-        CLEAR_IF_UART1_RX;		// reset UART1 RX interrupt flag
+        CLEAR_IF_UART1_RX;
     }
 
     // Interruption caused by errors
-    if ( IF_UART1_ERROR_DETECTION == 1)		
+    if (IF_UART1_ERROR_DETECTION == 1) 
     {
-        if (UART1_OVERRUN_ERROR_OCCURRED == 1)
-        {
-            rx_buffer.overrun = 1;		// set flag to indicate that the error as occurred
-            CLEAR_OVERRUN_ERROR_FLAG;	// clear OVERRUN FLAG (after removing everything from buffer)
+        if (UART1_OVERRUN_ERROR_OCCURRED == 1) {
+            rx_buffer.overrun = 1; 
+            CLEAR_OVERRUN_ERROR_FLAG; 
             CLEAR_IF_UART1_ERROR_DETECTION;
         }
     }
