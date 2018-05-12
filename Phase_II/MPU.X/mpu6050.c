@@ -1,5 +1,5 @@
 #include "mpu6050.h"
-#include "i2c2.h"
+#include "../I2C.X/i2c2.h"
 
 void init_MPU(void)
 {

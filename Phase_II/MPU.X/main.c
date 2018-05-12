@@ -5,12 +5,12 @@
  * Created on May 4, 2018, 7:14 PM
  */
 
-#include "header_pragma.h"
+#include "../DEVCFGx_config_bits.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "uart.h"
-#include "i2c2.h"
+#include "../I2C.X/uart.h"
+#include "../I2C.X/i2c2.h"
 #include "mpu6050.h"
 
 //void initI2C2();
