@@ -13,25 +13,38 @@
 #include <xc.h>
 
 #include "../global.h"
+#include "../interrupts.h"
 #include "uart1.h"
 
-#define DEBUG_MODE 1
+#define DEBUG_MODE 3
 #if DEBUG_MODE == 0
     #define DEBUG_NUM
 #elif DEBUG_MODE == 1
     #define DEBUG_STRINGS
 #elif DEBUG_MODE == 2
     #define DEBUG_ECHO
+#elif DEBUG_MODE == 3
+    #define DEBUG_INT_CIRCULAR_BUF
 #endif
 
 void main(void){
-    
     unsigned char c;
     uint8_t num;
     config_UART1(115200, 8, 'N', 1);
-    ENABLE_UART1_PHERIPHERAL;
     
-    
+    #ifdef DEBUG_INT_CIRCULAR_BUF
+        ENABLE_UART1_PHERIPHERAL;
+        flush_RX_buffer();
+        flush_TX_buffer();
+        ENABLE_UART1_ERROR_DETECTION_INT;
+        ENABLE_UART1_TX_INT;
+        ENABLE_UART1_RX_INT;
+        
+        Enable_Global_Interrupts();
+    #else
+        ENABLE_UART1_PHERIPHERAL;
+        send_char('a');
+    #endif
     // Set RA3 as outpout
     TRISAbits.TRISA3 = 0;
     
@@ -39,7 +52,7 @@ void main(void){
     while(1)
     {
         PORTAbits.RA3 = 0;
-        send_char('a');
+        
         
         
         #ifdef DEBUG_ECHO
@@ -68,9 +81,21 @@ void main(void){
         print_uint8(num);
         #endif
 
+        #ifdef DEBUG_INT_CIRCULAR_BUF
+        put_string("PIC32 UART Device-Driver\n");
+
+        if (get_char(&c) == UART_SUCCESS)	// if there is at least one character to be read from Uart
+        {
+            if (c == 'S')		// if the pressed key is an 'S'
+            {
+                put_string("\nFoi premida a tecla S\n"); 	// Write a sentence
+            }
+        put_char(c);		// echo of the pressed key
+        }
+        #endif
+
         send_char('\n');
         PORTAbits.RA3 = 1;
-        
     }
 }
 

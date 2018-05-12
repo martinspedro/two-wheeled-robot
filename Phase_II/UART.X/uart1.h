@@ -83,16 +83,32 @@
 #define CLEAR_OVERRUN_ERROR_FLAG {U1STAbits.OERR = 0;}      
 
 
+#define ENABLE_UART1_ERROR_DETECTION_INT     {IEC0bits.U1EIE = 1;}
+#define DISABLE_UART1_ERROR_DETECTION_INT    {IEC0bits.U1EIE = 0;}
+#define ENABLE_UART1_TX_INT                  {IEC0bits.U1TXIE = 1;}
+#define DISABLE_UART1_TX_INT                 {IEC0bits.U1TXIE = 0;}
+#define ENABLE_UART1_RX_INT                  {IEC0bits.U1RXIE = 1;}
+#define DISABLE_UART1_RX_INT                 {IEC0bits.U1RXIE = 0;}
+
+
+#define DISABLE_UART1_ALL_INTERRUPTS  {DISABLE_UART1_ERROR_DETECTION_INT; DISABLE_UART1_TX_INT; DISABLE_UART1_RX_INT;}
+#define ENABLE_UART1_ALL_INTERRUPTS  {ENABLE_UART1_ERROR_DETECTION_INT; ENABLE_UART1_TX_INT; ENABLE_UART1_RX_INT;}
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
 
-/** \brief ADC configuration routine
+/** \brief UART Configuration Function
  * 
- * This routine initializes the ADC module
- * It does NOT selects the ADC channel or initialize the ADC channel 
- * corresponding pin
+ * \param baudrate   Desired baudrate for UART operation
+ * \param data_bits  Desired data bits for UART communications
+ * \param parity     Parity tyope desired for UART 
+ * \param stop_bits  Desired number of stop bits for UART communications
+ * 
+ * The baudrate equation is given by: 
+ * \f[Baud-Rate = \frac{F_{PB}}{16 \cdot (UxBRG + 1)}\f]
+ * which yelds the value of the baudrate register, 
+ * \f[UxBRG = \frac{F_{PB}}{16 \cdot Baud-Rate} - 1\f]
  * 
  * \author Pedro Martins
  */
@@ -105,7 +121,11 @@ uint8_t print_uint8(uint8_t value);
 uint8_t print_uint16(uint16_t value);
 uint8_t read_uint8(void);
 
-
+void flush_RX_buffer(void);
+void flush_TX_buffer(void);
+void put_char(char c);
+void put_string(char *s);
+char get_char(char *pchar);
 
 #endif	/* UART1_H */
 

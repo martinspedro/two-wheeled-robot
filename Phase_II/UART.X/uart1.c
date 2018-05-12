@@ -8,7 +8,11 @@
 
 
 #include <xc.h>
+#include <sys/attribs.h>
+
 #include "../global.h"
+#include "../interrupts.h"
+#include "circular_buffer.h"
 #include "uart1.h"
 
 
@@ -40,6 +44,7 @@
 
 #define ADDRESS_CHAR_DETECT_STATUS U1STAbits.ADDEN      //!< Status bit for Address mode Detection (used in multiprocessor UART Communications)
 #define AUTO_ADDRESS_MASK_BITS     U1STAbits.ADDR       //!< Automatic Address Mask bits, if automatic address detection is enabled
+
 
 /** \brief UART RX uses Positive (standard) logic
  * 
@@ -92,39 +97,30 @@
 #define UART1_TX_IPL  3
 #define UART1_RX_IPSL 0
 
-#define ENABLE_UART1_INT  {IEC0bits.U1EIE = 1;}
-#define DISABLE_UART1_INT {IEC0bits.U1EIE = 0;}
-#define ENABLE_UART1_TX_INT  {IEC0bits.U1TXIE = 1;}
-#define DISABLE_UART1_TX_INT {IEC0bits.U1TXIE = 0;}
-#define ENABLE_UART1_RX_INT  {IEC0bits.U1RXIE = 1;}
-#define DISABLE_UART1_RX_INT {IEC0bits.U1RXIE = 0;}
+#define CLEAR_IF_UART1_TX               {IFS0bits.U1TXIF = 0;}
+#define CLEAR_IF_UART1_RX               {IFS0bits.U1RXIF = 0;}
+#define CLEAR_IF_UART1_ERROR_DETECTION  {IFS0bits.U1EIF = 0;}
 
-#define CLEAR_IF_UART1_TX {IFS0bits.U1TXIF = 0;}
-#define CLEAR_IF_UART1_RX {IFS0bits.U1RXIF = 0;}
-#define CLEAR_IF_UART1    {IFS0bits.U1EIF = 0;}
+
+/*******************************************************************************
+ *                       CLASS VARIABLES DEFINITION
+ ******************************************************************************/
+
+volatile circularBuffer tx_buffer;	//!< Software circular transmission buffer
+volatile circularBuffer rx_buffer;	//!< Software circular reception buffer
 
 
 
 /*******************************************************************************
  *                         CLASS METHODS
  ******************************************************************************/
-/** \brief UART Configuration Function
- * 
- * \param baudrate   Desired baudrate for UART operation
- * \param data_bits  Desired data bits for UART communications
- * \param parity     Parity tyope desired for UART 
- * \param stop_bits  Desired number of stop bits for UART communications
- * 
- * The baudrate equation is given by: 
- * \f[Baud-Rate = \frac{F_{PB}}{16 \cdot (UxBRG + 1)}\f]
- * which yelds the value of the baudrate register, 
- * \f[UxBRG = \frac{F_{PB}}{16 \cdot Baud-Rate} - 1\f]
- * 
- * \author Pedro Martins
- */
 void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits)
 {
     DISABLE_UART1_PHERIPHERAL;
+    DISABLE_UART1_ALL_INTERRUPTS;
+    CLEAR_IF_UART1_TX;
+    CLEAR_IF_UART1_RX;
+    CLEAR_IF_UART1_ERROR_DETECTION;
     
     /***************************************************************************
     *                      VALIDATE USER INPUT 
@@ -294,7 +290,6 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
 }
 
 
-
 /** @brief Blocking UART send char function
  * @author Pedro Martins
  * 
@@ -389,3 +384,120 @@ uint8_t read_uint8(void){
     return high * 10 + low;
 }
 
+void flush_RX_buffer(void)	
+{
+    DISABLE_UART1_RX_INT;	// Disable Interruptions for the RX module while it is being initialized
+
+    rx_buffer.head = 0;		
+    rx_buffer.tail = 0;		
+    rx_buffer.head = 0;
+
+    ENABLE_UART1_RX_INT;		
+}
+
+void flush_TX_buffer(void)	
+{
+    DISABLE_UART1_TX_INT;	// Disable Interruptions for the TX module while it is being initialized
+
+    tx_buffer.head = 0;		
+    tx_buffer.tail = 0;		
+    tx_buffer.head = 0;
+
+    ENABLE_UART1_TX_INT;		
+}
+
+void put_char(char c)
+{
+    while(tx_buffer.count == BUF_SIZE);	// Wait while buffer is full
+
+    tx_buffer.data[tx_buffer.tail] = c;		// Copy character to transmission buffer at position tail
+    tx_buffer.tail = (tx_buffer.tail + 1) & INDEX_MASK;	// Inncrement tail index with the module of BUF_SIZE
+
+    DISABLE_UART1_TX_INT;		// Begin of critical section
+    tx_buffer.count++;			
+    ENABLE_UART1_TX_INT;		// End of critical section
+}
+
+void put_string(char *s)
+{
+    while(*s != '\0')		// while doesn't read the termination character
+    {
+        put_char(*s);	
+	 s++;			
+    }
+}
+
+// Function to check a character from the Reception buffer
+// if the number of characters in buffer is zero, returns FALSE. If the number of characters is
+// different from zero, return TRUE (Note thta TRUE and FALSE are defined in detpic32.h -> nope!)
+char get_char(char *pchar)
+{
+    if ( rx_buffer.count == 0)	// if there are no characters in the buffer, return 0
+    {
+        return UART_ERROR;
+    }
+    
+    DISABLE_UART1_RX_INT;	// Disbale Uart Receiver module Interrupts
+    
+    *pchar = rx_buffer.data[rx_buffer.head];	// copy character pointed by head to *pchar
+    rx_buffer.count--;			// decrement count variable
+    rx_buffer.head = (rx_buffer.head++) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
+    
+    ENABLE_UART1_RX_INT;	// Enable Uart Receiver module Interrupts
+    
+    return UART_SUCCESS;		// return true (there at least one character in the buffer)
+}
+
+
+
+// Interruption Routine
+void __ISR(_UART1_VECTOR, IPL3SOFT) UART_ISR(void)
+{
+    // Interruption caused by TX module
+    if( IFS0bits.U1TXIF )	// if the interruption is caused by the TX module
+    {	
+        // while the transmission buffer has at least one empty slot and is not full
+        while ( tx_buffer.count > 0 && !U1STAbits.UTXBF)
+        {
+            U1TXREG = tx_buffer.data[tx_buffer.head];	// copy character pointed by head to U1TXREG
+            tx_buffer.head = (tx_buffer.head + 1) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
+            tx_buffer.count--;				// decrement count variable	
+        }
+
+        if ( tx_buffer.count == 0)
+        {
+            DISABLE_UART1_TX_INT;
+        }
+
+        IFS0bits.U1TXIF = 0;	// Reset UART TX interrupt flag
+    }
+    
+    // Interruption caused by the RX module
+    if ( IFS0bits.U1RXIF )
+    {
+        while (U1STAbits.URXDA )		// While the buffer has data, copy all 
+                            // characters in FIFO. URXDA - Receiver module 
+                            // Data availiable
+        {
+            rx_buffer.data[rx_buffer.tail] = U1RXREG;	// Read character from UART and write it to the 
+                            // tail position of the reception buffer
+
+            rx_buffer.tail = (rx_buffer.tail + 1) & INDEX_MASK;	// increment tail variable (mod BUF_SIZE)
+
+            if ( rx_buffer.count < BUF_SIZE )	// reception buffer is not full
+            rx_buffer.count++;		// increment count variable
+            else
+            rx_buffer.head = (rx_buffer.head + 1) & INDEX_MASK;	// increment head variable (mod BUF_SIZE)
+                                    // discard oldest change
+        }
+
+        IFS0bits.U1RXIF = 0;		// reset UART1 RX interrupt flag
+    }
+
+    // Interruption caused by errors (overrun errors in this case)
+    if ( U1STAbits.OERR )		
+    {
+        rx_buffer.overrun = 1;		// set flag to indicate that the error as occurred
+        U1STAbits.OERR = 0;		// reset UART1 error flag
+    }
+}
