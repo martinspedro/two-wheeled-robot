@@ -133,7 +133,6 @@
 void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, uint8_t stop_bits);
 
 
-
 /** \brief Flushes all data from RX buffer
  * 
  * Resets all buffer variables to initial state, flushing all the data
@@ -150,7 +149,7 @@ void flush_RX_buffer(void);
  * 
  * Resets all buffer variables to initial state, flushing all the data
  * 
- * \pre    UART 1 is configured
+ * \pre    UART 1 must be configured
  * \param  None.
  * \return None.
  * 
@@ -168,7 +167,7 @@ void flush_TX_buffer(void);
  * \param  c The char to be sent 
  * \return None.
  * 
- * If the macro  INTERRUPTS_ON is defined, the routine uses the software circular 
+ * If the macro INTERRUPTS_ON is defined, the routine uses the software circular 
  * buffer  and enables the interrupts related with the TX module, if not enabled 
  * yet. This function halts the code execution until the software TX buffer has 
  * at least one empty space 
