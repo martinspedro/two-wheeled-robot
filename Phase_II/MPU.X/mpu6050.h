@@ -538,11 +538,16 @@ void read_MPU(MPU6050_data* Sensor);
  * 
  * \author André Gradim
  */
-void read_data(MPU_reading* v1, MPU_reading* v2, uint16_t* temp);
+void read_data(uint16_t* a1,uint16_t* a2, uint16_t* a3, uint16_t* g1, uint16_t* g2, uint16_t* g3, uint16_t* temp);
 
 void testConnection_MPU();
 void read_reg_MPU(uint8_t reg);
 
+
+void setClockSource(uint8_t source);
+void setFullScaleGyroRange(uint8_t range);
+void setFullScaleAccelRange(uint8_t range);
+void setSleepEnabled(uint8_t enabled);
 
 
 
