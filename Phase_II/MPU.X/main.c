@@ -9,7 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "../I2C.X/uart.h"
+#include <proc/p32mx795f512l.h>
+#include "../UART.X/uart1.h"
 #include "../I2C.X/i2c2.h"
 #include "mpu6050.h"
 
@@ -20,83 +21,47 @@
  */
 int main(int argc, char** argv) {
     
-    configureUART1(115200,40000000);
+    config_UART1(115200, 8, 'N', 1);
     openI2C2();
     
+    init_MPU();
+    static MPU6050_data mpu6050;
     
     
-    while(1){   
-        putChar('R');
-        char in = getChar();
+    //Change led pin accordingly
+    TRISBbits.TRISB3 = 0;    
+    
+    while(1){
         
+        LATBbits.LATB3 = 1;
         
-        /////////////////////////////////
-        /*putChar('w'); 
+        readMPU(mpu6050);
+        put_string("A: ");
+        put_uint16(mpu6050.Accel.X);
+        put_char(' ');
         
-        waitI2C2();
-        startI2C2();
+        put_uint16(mpu6050.Accel.Y);
+        put_char(' ');
         
-        uint8_t dev_address = 0x68;
-        uint8_t buf_size = 2;
-        uint8_t transfer_buf[] = {0x71, 0x01};
-                
-        masterSend(dev_address, transfer_buf, buf_size);
+        put_uint16(mpu6050.Accel.Z);
+        put_char(' ');
         
-        waitI2C2();
-        stopI2C2();
+        put_string("G: ");
+        put_uint16(mpu6050.Gyro.X);
+        put_char(' ');
         
-        */
+        put_uint16(mpu6050.Gyro.Y);
+        put_char(' ');
         
-        ///////////////////////////////
-        putChar('r');
+        put_uint16(mpu6050.Gyro.Z);
+        put_char('\n');
         
-        waitI2C2();
-        startI2C2();
+        put_string("T: ");
+        put_uint16(mpu6050.Temperature);
+        put_char('\n');
         
-        uint8_t dev_address = 0x68;
-        uint8_t buf_size = 1;
-        uint8_t transfer_buf2[] = {0x19};
-                
-        masterSend(dev_address, transfer_buf2, buf_size);
-        
-        waitI2C2();
-        stopI2C2();
-        
-        ///
-        
-        waitI2C2();
-        startI2C2();
-        dev_address = 0x68;
-        
-        masterSend(dev_address, NULL, 0);
-        
-        
-        uint8_t bytes_to_read = 1;
-        uint8_t buffer[bytes_to_read];
-        
-        masterReceive( buffer, bytes_to_read);
-        
-        waitI2C2();
-        stopI2C2();
-        
-        /////////////////////////////////
-        putChar('w'); 
-        
-        waitI2C2();
-        startI2C2();
-        
-        dev_address = 0x68;
-        buf_size = 2;
-        uint8_t transfer_buf[] = {0x19, 0x22};
-                
-        masterSend(dev_address, transfer_buf, buf_size);
-        
-        waitI2C2();
-        stopI2C2();
-        
-       
-        
-        
+        LATBbits.LATB3 = 0;
+        //delay a few milisecconds before new measurements
         
         
         
