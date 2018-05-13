@@ -19,7 +19,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <fcntl.h>
-#include "i2c2.h"
+#include "../I2C.X/i2c2.h"
 //#include <sys/ioctl.h>
 //#include <linux/i2c-dev.h>
 
@@ -150,13 +150,16 @@ static uint16_t readReg16(uint8_t dev_add, uint8_t ucAddr)
 {
   uint8_t ucTemp[2];
   ucTemp[0] = ucAddr;
-  startI2C2();
-  masterSend(dev_add, ucTemp,1);
-  restartI2C2(); 
-  masterSend(dev_add, NULL,0);
-  masterReceive(ucTemp, 2);
-
-  stopI2C2();
+  readBytes(dev_add,ucAddr,2, ucTemp);
+  
+  
+  // startI2C2();
+  // masterSend(dev_add, ucTemp,1);
+  // restartI2C2(); 
+  // masterSend(dev_add, NULL,0);
+  // masterReceive(ucTemp, 2);
+  // 
+  // stopI2C2();
    
 	return (uint16_t)((ucTemp[0]<<8) + ucTemp[1]);
 } /* readReg16() */
@@ -168,39 +171,46 @@ static uint8_t readReg(uint8_t dev_add, uint8_t ucAddr)
 {
   uint8_t ucTemp;
 
-  ucTemp = ucAddr;
-  startI2C2();
-  masterSend(dev_add, &ucTemp,1);
-  restartI2C2();
-  masterSend(dev_add, NULL,0);
-  masterReceive(&ucTemp, 1);
+  // ucTemp = ucAddr;
+
+  
+  readBytes(dev_add,ucAddr,2, &ucTemp);
+
+  // startI2C2();
+  // masterSend(dev_add, &ucTemp,1);
+  // restartI2C2();
+  // masterSend(dev_add, NULL,0);
+  // masterReceive(&ucTemp, 1);
         
-  stopI2C2();
+  // stopI2C2();
 	return ucTemp;
 } /* ReadReg() */
 
 static void readMulti(uint8_t dev_add,unsigned char ucAddr, unsigned char *pBuf, uint8_t iCount)
 {
-  uint8_t ucTemp = (uint8_t) ucAddr;
-  startI2C2();
-  masterSend(dev_add, &ucAddr,1);
-  restartI2C2();
-  masterSend(dev_add, NULL,0);
-  masterReceive(pBuf, iCount);
-  stopI2C2();
+  // uint8_t ucTemp = (uint8_t) ucAddr;
+
+  
+  readBytes(dev_add,ucAddr,iCount, pBuf);
+
+  // startI2C2();
+  // masterSend(dev_add, &ucAddr,1);
+  // restartI2C2();
+  // masterSend(dev_add, NULL,0);
+  // masterReceive(pBuf, iCount);
+  // stopI2C2();
   
 } /* readMulti() */
 
 static void writeMulti(uint8_t dev_add, uint8_t ucAddr, uint8_t *pBuf, uint8_t iCount)
 {
-  uint8_t ucTemp[16];
-  int rc;
+  
+	
+  writeBytes(dev_add, ucAddr, iCount, pBuf);
 
-	ucTemp[0] = ucAddr;
-	memcpy(&ucTemp[1], pBuf, iCount);
-  startI2C2();
-  masterSend(dev_add, ucTemp, iCount+1);
-  stopI2C2();
+  // startI2C2();
+  // masterSend(dev_add, ucTemp, iCount+1);
+  // stopI2C2();
 	// rc = write(file_i2c, ucTemp, iCount+1);
 	// if (rc != iCount+1) {};
 } /* writeMulti() */
@@ -211,14 +221,16 @@ static void writeReg16(uint8_t dev_add, uint8_t ucAddr, unsigned short usValue)
 {
   uint8_t ucTemp[4];
 
-	ucTemp[0] = ucAddr;
-	ucTemp[1] = (uint8_t)(usValue >> 8); // MSB first
-	ucTemp[2] = (uint8_t)usValue;
+	// ucTemp[0] = ucAddr;
+	ucTemp[0] = (uint8_t)(usValue >> 8); // MSB first
+	ucTemp[1] = (uint8_t)usValue;
 
-  startI2C2();
-  masterSend(dev_add, ucTemp, 3);
+  writeBytes(dev_add, ucAddr, 2, ucTemp);
 
-  stopI2C2();
+  // startI2C2();
+  // masterSend(dev_add, ucTemp, 3);
+
+  // stopI2C2();
 	// rc = write(file_i2c, ucTemp, 3);
 	// if (rc != 3) {}; // suppress warning
 } /* writeReg16() */
@@ -227,14 +239,15 @@ static void writeReg16(uint8_t dev_add, uint8_t ucAddr, unsigned short usValue)
 //
 static void writeReg(uint8_t dev_add, uint8_t ucAddr, uint8_t ucValue)
 {
-  uint8_t ucTemp[2];
+  uint8_t ucTemp= ucValue;
 
-	ucTemp[0] = ucAddr;
-	ucTemp[1] = ucValue;
-  
-  startI2C2();
-  masterSend(dev_add, ucTemp, 2);
-  stopI2C2();
+	
+
+  writeBytes(dev_add, ucAddr, 1, &ucTemp);
+
+  // startI2C2();
+  // masterSend(dev_add, ucTemp, 2);
+  // stopI2C2();
 	// rc = write(file_i2c, ucTemp, 2);
 	// if (rc != 2) {}; // suppress warning
 } /* writeReg() */
@@ -883,25 +896,28 @@ int tofGetModel(uint8_t dev_add,int *model, int *revision)
 	if (model)
 	{
 		ucTemp[0] = REG_IDENTIFICATION_MODEL_ID;
-    startI2C2();
-    masterSend(dev_add, ucTemp, 1); // write address of register to read
-    restartI2C2();
-    masterSend(dev_add,NULL,0);
-    masterReceive(ucTemp, 1);
-    stopI2C2();
+
+    readBytes(dev_add,ucTemp[0],1, ucTemp);
+    // startI2C2();
+    // masterSend(dev_add, ucTemp, 1); // write address of register to read
+    // restartI2C2();
+    // masterSend(dev_add,NULL,0);
+    // masterReceive(ucTemp, 1);
+    // stopI2C2();
 		// if (i == 1)
 			*model = ucTemp[0];
 	}
 	if (revision)
 	{
 		ucTemp[0] = REG_IDENTIFICATION_REVISION_ID;
-    startI2C2();
-		masterSend(dev_add, ucTemp, 1); // write address of register to read
-    restartI2C2();
-    masterSend(dev_add,NULL,0);
-    masterReceive(ucTemp, 1);
-		// if (i == 1)
-		stopI2C2();
+    readBytes(dev_add,ucTemp[0],1, ucTemp);
+    // startI2C2();
+		// masterSend(dev_add, ucTemp, 1); // write address of register to read
+    // restartI2C2();
+    // masterSend(dev_add,NULL,0);
+    // masterReceive(ucTemp, 1);
+		// // if (i == 1)
+		// stopI2C2();
     *revision = ucTemp[0];
 	}
 	return 1;
