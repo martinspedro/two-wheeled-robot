@@ -147,7 +147,32 @@ uint8_t masterReadI2C2(void);
  */
 uint8_t masterWriteI2C2(uint8_t data_out);
 
+/** \brief Full read operation from ic2 device
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to read from
+ * \param n_bytes # bytes to read
+ * \param buffer  Place to store the data
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer);
 
+
+/** \brief Full read operation from ic2 device
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to write to
+ * \param  n_bytes # bytes to write
+ * \param  buffer  Place where the data to write is stored
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer);
 
 /* *****************************************************************************
  End of File

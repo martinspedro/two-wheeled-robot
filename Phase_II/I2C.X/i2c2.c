@@ -78,8 +78,10 @@ static I2C_MESSAGE_BLOCK i2c_message;
 //* ************************************************************************** */
 
 //To active interrupts remove comment (not fully implemented yet)
-#define INTERRUPTS_ON
+//#define INTERRUPTS_ON
 
+
+#ifdef INTERRUPTS_ON
 uint8_t insert_i2c_buffer(I2C_MESSAGE_BLOCK* pBuffer){
     if(i2c_buffer.count < I2C_BUFFER_SIZE){
         i2c_buffer.buffer[i2c_buffer.tail] = *pBuffer;
@@ -111,6 +113,7 @@ uint8_t pop_i2c_buffer(I2C_MESSAGE_BLOCK* pBuffer){
     return 1;
 }
 
+#endif
 
 
 void openI2C2( ){
@@ -132,12 +135,9 @@ void openI2C2( ){
     IEC1bits.I2C2MIE = 1;
     IEC1bits.I2C2SIE = 0;
     IEC1bits.I2C2BIE = 0;
-    
-    
+      
     #endif
 
-     
-    
     I2C2CONbits.ON = 1;         // enable i2c2 module
 }
 
@@ -279,11 +279,13 @@ uint8_t masterReadI2C2(void){
     #ifdef DEBUG_I2C
     putchar('n');
     #endif
+
     #ifndef INTERRUPTS_ON
 
     while(I2C2STATbits.RBF == 0); //wait until reception is done
     
     #endif
+
     //Next it's needed to send acknowledge sequence (|ACK or NACK))
     uint8_t temp = I2C2RCV;
     return temp;
@@ -352,10 +354,48 @@ void masterReceive(uint8_t* buffer,uint8_t bytes_to_read){
     }
 }
 
+uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer){
+    startI2C2();
+    uint8_t temp = reg;
+    masterSend(devAddr, &reg,1);
+    
+    restartI2C2();
+    masterSend(devAddr, NULL,0);
+        
+    masterReceive(buffer, n_bytes);
+    
+    stopI2C2();
+    //implement error detection
+    
+    return 0;
+}
+
+
+uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer){
+    startI2C2();
+    
+    uint8_t temp[n_bytes + 1];
+    temp[0] =  reg;
+    
+    uint8_t i = 0;
+    
+    for( i = 0; i < n_bytes; i++){
+        temp[i+1] = buffer[i];
+    }
+    
+    
+    masterSend(devAddr, temp, n_bytes + 1);
+    
+    stopI2C2();
+    //implement error detection
+    
+    return 0;
+}
 
 
 
 
+#ifdef INTERRUPTS_ON
 void __ISR(_I2C2_VECTOR, IPL5SOFT) I2C2_ISR(void){
     
     if(IFS1bits.I2C2BIF == 1){ //Interrupt triggered by bus collision
@@ -609,6 +649,7 @@ void __ISR(_I2C2_VECTOR, IPL5SOFT) I2C2_ISR(void){
     
     
 }
+#endif
 
 
 
