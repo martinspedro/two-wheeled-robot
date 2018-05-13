@@ -1,6 +1,6 @@
 /* 
  * File:   mpu6050.h
- * Author: Andr� Gradim
+ * Author: Andr� Gradim
  *
  * Created on May 4, 2018, 7:15 PM
  */
@@ -482,6 +482,12 @@
 #define MPU6050_DMP_MEMORY_BANK_SIZE    256
 #define MPU6050_DMP_MEMORY_CHUNK_SIZE   16
 
+typedef struct
+{
+    uint16_t X;
+    uint16_t Y;
+    uint16_t Z;
+}MPU_reading;
 
 typedef struct
 {
@@ -501,8 +507,38 @@ typedef struct
 }MPU6050_data;
 
 // MPU 6050 functions
+
+/** \brief Initialize MPU6050 registers for normal operation
+ * 
+ * \pre    Must be the first functioin to run
+ * \param  None
+ * \return None
+ * 
+ * \author André Gradim
+ */
 void init_MPU(void);
-void read_MPU(MPU6050_data* );
+
+/** \brief Read accel,gyro and temp. data into MPU_data struct
+ * 
+ * \pre    Must be the first function to run
+ * \param  Sensor Structure where the data will be stored
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void read_MPU(MPU6050_data* Sensor);
+
+/** \brief Read accel,gyro and temp. data into separate structs
+ * 
+ * \pre    Must be the first function to run
+ * \param  v1 struct with 3 uint16_t
+ * \param  v2 struct with 3 uint16_t
+ * \param  temp variable to store temp. data
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void read_data(MPU_reading* v1, MPU_reading* v2, uint16_t* temp);
 
 void testConnection_MPU();
 void read_reg_MPU(uint8_t reg);
