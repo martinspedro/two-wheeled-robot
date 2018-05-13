@@ -13,6 +13,8 @@
 #include "../I2C.X/i2c2.h"
 #include "../UART.X/uart1.h"
 #include "tof.h"
+#include "../interrupts.h"
+
 
 //void initI2C2();
 
@@ -22,6 +24,16 @@
 int main(int argc, char** argv) {
     
     config_UART1(115200, 8, 'N', 1);
+
+    ENABLE_UART1_PHERIPHERAL;
+    flush_RX_buffer();
+    flush_TX_buffer();
+    ENABLE_UART1_ERROR_DETECTION_INT;
+    ENABLE_UART1_TX_INT;
+    ENABLE_UART1_RX_INT;
+    
+    configure_global_interrupts();
+    Enable_Global_Interrupts();
     
     
     
