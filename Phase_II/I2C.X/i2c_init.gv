@@ -1,0 +1,47 @@
+digraph G {
+
+  subgraph cluster_0 {
+    style=filled;
+    color=lightgrey;
+    node [style=filled,color=white];
+   
+    label = "process #1";
+  }
+
+  subgraph cluster_1 {
+    node [style=filled];
+    
+    label = "Interrupts Mode";
+    color=blue
+  }
+  
+  
+  a0[label = "Disable I2C module"];
+  a1[label = "Set Baud Rate Generator bits "];
+  
+  a2[label = "Enable I2C module"]
+  
+  b1[label = "Initialize software buffer"]
+  b2[label = "Enable I2C \n master interrupts"]
+  b3[label = "Enable global interrupts"]
+  a3[label = "INTERRUPTS_ON \n defined?", color = pink, shape= diamond]
+  
+  
+  a1 -> a3;
+  
+  
+  Initialization -> a0;
+  a0 -> a1;
+  a3 -> a2[label ="No", location = left];
+  a3 -> b1[label ="Yes", ];
+  b1 -> b2;
+  b2 -> b3;
+  b3 -> a2;
+  
+  a2 -> End;
+  
+  Initialization, End [shape=box, style= rounded, color = orange];
+  a0,a1,a2,b1,b2,b3[shape= rectangle]
+  
+  
+}

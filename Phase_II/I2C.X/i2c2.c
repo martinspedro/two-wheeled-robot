@@ -14,6 +14,11 @@
 // Section: Macros                                                             */
 //* ************************************************************************** */
 
+//To active interrupts remove comment (not fully implemented yet)
+//#define INTERRUPTS_ON
+
+
+
 #define I2C1_EI IEC1bits.I2C2MIE = 1;
 #define I2C2_DI IEC1bits.I2C2MIE = 0;
 
@@ -74,11 +79,116 @@ static I2C_MESSAGE_BLOCK i2c_message;
 
 
 //* ************************************************************************** */
+// Section: Internal functions                                                 */
+//* ************************************************************************** */
+
+/** \brief Start sequence initializer
+ * 
+ * \pre    I2C bus must be idle
+ * \param  None
+ * \return 0 on success
+ * 
+ * \author André Gradim
+ */
+int startI2C2();
+
+/** \brief Stop sequence initializer
+ * 
+ * \pre    I2C bus must be idle
+ * \param  None
+ * \return 0 on success
+ * 
+ * \author André Gradim
+ */
+int stopI2C2();
+
+/** \brief Resytart sequence initializer
+ * 
+ * \pre    I2C bus must be idle
+ * \param  None
+ * \return 0 on success
+ * 
+ * \author André Gradim
+ */
+int restartI2C2();
+
+/** \brief Send !ACK or NACK sequence
+ * 
+ * \pre    None
+ * \param  !ACK or NACK(0 or 1) as input
+ * \return 0 on success, other in case of error
+ * 
+ * \author André Gradim
+ */
+int ackI2C2(int ackType);
+
+
+/** \brief Check if I2C bus is idle
+ * 
+ * \pre    None
+ * \param  None
+ * \return 1 when bus is idle
+ * 
+ * \author André Gradim
+ */
+int idleI2C2(void);
+
+/** \brief Busy wait until I2C bus is idle
+ * 
+ * \pre    None
+ * \param  None
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void waitI2C2(void);
+
+/** \brief Enable reception and gets 1 byte from I2C bus
+ * 
+ * \pre    None
+ * \param  None
+ * \return 1 when full
+ * 
+ * \author André Gradim
+ */
+uint8_t masterReadI2C2(void);
+
+/** \brief Send 1 byte to I2C bus
+ * 
+ * \pre    None
+ * \param  Byte to send
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t masterWriteI2C2(uint8_t data_out);
+
+/** \brief Send data to dev_address, automatically selects W|!R byte on address
+ * 
+ * \pre    None
+ * \param  dev_address - Device address, data - Array containing the data to send, data_size - Number of bytes to send
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size);
+
+/** \brief Gets bytes_to_read bytes from I2C bus into buffer
+ * 
+ * \pre    None
+ * \param  buffer[] - place to hold the bytes, bytes_to_read - n. of bytes to read
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void masterReceive(uint8_t* buffer,uint8_t bytes_to_read);
+
+
+
+//* ************************************************************************** */
 // Section: Interface Functions                                                */
 //* ************************************************************************** */
 
-//To active interrupts remove comment (not fully implemented yet)
-//#define INTERRUPTS_ON
 
 
 #ifdef INTERRUPTS_ON
@@ -117,7 +227,8 @@ uint8_t pop_i2c_buffer(I2C_MESSAGE_BLOCK* pBuffer){
 
 
 void openI2C2( ){
-    I2C2CONbits.A10M = 0;       //use 7 bit slave address
+    I2C2CONbits.ON = 0;         // make sure the module is disabled
+    
     //I2C2CONbits.DISSLW = 0;   // slew rate disable for 400kHz
     
     I2C2BRG = 0x02C;            //set the brg for 400kHz
@@ -299,9 +410,7 @@ uint8_t masterWriteI2C2(uint8_t data_out){
     
     #ifndef INTERRUPTS_ON
         while(I2C2STATbits.TRSTAT == 1);
-    #endif 
-    //Next needs to check for |ACK sequence
-
+    #endif
     //return() -> add bus collision detection
 }
 
@@ -370,6 +479,35 @@ uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer
     return 0;
 }
 
+uint8_t readByte(uint8_t devAddr, uint8_t reg, uint8_t* buffer){
+    return readBytes(devAddr,reg,1,buffer);
+}
+
+int8_t readBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length, uint8_t *data, uint16_t timeout) {
+    // 01101001 read byte
+    // 76543210 bit numbers
+    //    xxx   args: bitStart=4, length=3
+    //    010   masked
+    //   -> 010 shifted
+    uint8_t b;
+    if (readByte(devAddr, reg, &b) == 0) {
+        uint8_t mask = ((1 << length) - 1) << (bitStart - length + 1);
+        b &= mask;
+        b >>= (bitStart - length + 1);
+        *data = b;
+        return 0;
+    }
+    return 1;
+}
+
+int8_t readBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t *data) {
+    uint8_t b;
+    uint8_t res = readByte(devAddr, reg, &b);
+    *data = b & (1 << bitNum);
+    return res;
+}
+
+
 
 uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer){
     startI2C2();
@@ -392,33 +530,33 @@ uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffe
     return 0;
 }
 
-uint8_t writeBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint8_t length, uint8_t data) {
-    //      010 value to write
-    // 76543210 bit numbers
-    //    xxx   args: bitStart=4, length=3
-    // 00011100 mask byte
-    // 10101111 original value (sample)
-    // 10100011 original & ~mask
-    // 10101011 masked | value
+uint8_t writeByte(uint8_t devAddr, uint8_t reg, uint8_t buffer){
+    return writeBytes(devAddr,reg,1, &buffer);
+}
+
+
+
+uint8_t writeBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length, uint8_t data) {
+    
     uint8_t b;
-    if (readBytes(devAddr, regAddr,1, &b) == 0) {
+    if (readBytes(devAddr, reg,1, &b) == 0) {
         uint8_t mask = ((1 << length) - 1) << (bitStart - length + 1);
-        data <<= (bitStart - length + 1); // shift data into correct position
-        data &= mask; // zero all non-important bits in data
-        b &= ~(mask); // zero all important bits in existing byte
-        b |= data; // combine data with existing byte
-        writeBytes(devAddr, regAddr,1, &b);
+        data <<= (bitStart - length + 1);
+        data &= mask;
+        b &= ~(mask);
+        b |= data; 
+        writeBytes(devAddr, reg,1, &b);
         return 0;
     } else {
         return 1;
     }
 }
 
-writeBit(uint8_t devAddr, uint8_t regAddr, uint8_t bitNum, uint8_t data) {
+uint8_t writeBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t data) {
     uint8_t b;
-    readBytes(devAddr, regAddr,1, &b);
+    readBytes(devAddr, reg,1, &b);
     b = (data != 0) ? (b | (1 << bitNum)) : (b & ~(1 << bitNum));
-    return writeBytes(devAddr, regAddr,1, &b);
+    return writeBytes(devAddr, reg,1, &b);
 }
 
 
