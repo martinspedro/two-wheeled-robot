@@ -20,8 +20,7 @@
 //
 
 //
-// Read the model and revision of the
-// tof sensor
+// Read the model and revision of the tof sensor
 //
 int tofGetModel(uint8_t dev_add, int *model, int *revision);
 
@@ -34,6 +33,9 @@ int tofReadDistance(uint8_t dev_add);
 // Opens a file system handle to the I2C device
 // sets the device continous capture mode
 //
-int tofInit(uint8_t dev_add, int bLongRange);
+int initSensor(uint8_t dev_add,int bLongRangeMode);
+
+
+void setAddress(uint8_t dev_add,uint8_t new_addr);
 
 #endif // _TOFLIB_H

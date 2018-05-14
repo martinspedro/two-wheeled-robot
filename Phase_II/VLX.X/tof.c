@@ -20,36 +20,27 @@
 #include <string.h>
 #include <fcntl.h>
 #include "../I2C.X/i2c2.h"
-//#include <sys/ioctl.h>
-//#include <linux/i2c-dev.h>
 
-//static int file_i2c = 0;
+
 static unsigned char stop_variable;
 static uint32_t measurement_timing_budget_us;
 
-// static unsigned char readReg(unsigned char ucAddr);
+
 static uint16_t readReg16(uint8_t dev_add, uint8_t ucAddr);
 
-// static unsigned short readReg16(unsigned char ucAddr);
 static uint8_t readReg(uint8_t dev_add, uint8_t ucAddr);
 
-// static void writeReg16(unsigned char ucAddr, unsigned short usValue);
 static void writeReg16(uint8_t dev_add, uint8_t ucAddr, unsigned short usValue);
 
-// static void writeReg(unsigned char ucAddr, unsigned char ucValue);
 static void writeReg(uint8_t dev_add, uint8_t ucAddr, uint8_t ucValue);
 
-// static void writeRegList(unsigned char *ucList);
 static void writeRegList(uint8_t dev_add, uint8_t *ucList);
 
 
-// static int initSensor(int);
-static int initSensor(uint8_t dev_add,int bLongRangeMode);
+//int initSensor(uint8_t dev_add,int bLongRangeMode);
 
-// static int performSingleRefCalibration(uint8_t vhv_init_byte);
 static int performSingleRefCalibration(uint8_t dev_add,uint8_t vhv_init_byte);
 
-// static int setMeasurementTimingBudget(uint32_t budget_us);
 static int setMeasurementTimingBudget(uint8_t dev_add, uint32_t budget_us);
 
 #define calcMacroPeriod(vcsel_period_pclks) ((((uint32_t)2304 * (vcsel_period_pclks) * 1655) + 500) / 1000)
@@ -107,41 +98,17 @@ typedef struct tagSequenceStepTimeouts
 #define GPIO_HV_MUX_ACTIVE_HIGH                 0x84
 #define SYSTEM_INTERRUPT_CLEAR                  0x0B
 
-void usleep(int val){
+#define I2C_SLAVE_DEVICE_ADDRESS                0x8A
+
+
+// 5 ms delay
+void delay5ms(void){
     int temp = 0;
     while( temp < 7150){
         temp = temp + 1;
     }
 }
 
-
-//
-// Opens a file system handle to the I2C device
-// reads the calibration data and sets the device
-// into auto sensing mode
-//
-int tofInit(uint8_t dev_add, int bLongRange)
-{
-  // char filename[32];
-
-	// sprintf(filename,"/dev/i2c-%d", iChan);
-	// if ((file_i2c = open(filename, O_RDWR)) < 0)
-	// {
-	// 	fprintf(stderr, "Failed to open the i2c bus; need to run as sudo?\n");
-	// 	return 0;
-	// }
-
-	// if (ioctl(file_i2c, I2C_SLAVE, iAddr) < 0)
-	// {
-	// 	fprintf(stderr, "Failed to acquire bus access or talk to slave\n");
-	// 	close(file_i2c);
-	// 	file_i2c = -1;
-	// 	return 0;
-	// }
-
-	return initSensor(dev_add,bLongRange); // finally, initialize the magic numbers in the sensor
-
-} /* tofInit() */
 
 //
 // Read a pair of registers as a 16-bit value
@@ -152,16 +119,7 @@ static uint16_t readReg16(uint8_t dev_add, uint8_t ucAddr)
   ucTemp[0] = ucAddr;
   readBytes(dev_add,ucAddr,2, ucTemp);
   
-  
-  // startI2C2();
-  // masterSend(dev_add, ucTemp,1);
-  // restartI2C2(); 
-  // masterSend(dev_add, NULL,0);
-  // masterReceive(ucTemp, 2);
-  // 
-  // stopI2C2();
-   
-	return (uint16_t)((ucTemp[0]<<8) + ucTemp[1]);
+  return (uint16_t)((ucTemp[0]<<8) + ucTemp[1]);
 } /* readReg16() */
 
 //
@@ -171,48 +129,22 @@ static uint8_t readReg(uint8_t dev_add, uint8_t ucAddr)
 {
   uint8_t ucTemp;
 
-  // ucTemp = ucAddr;
-
-  
   readBytes(dev_add,ucAddr,2, &ucTemp);
 
-  // startI2C2();
-  // masterSend(dev_add, &ucTemp,1);
-  // restartI2C2();
-  // masterSend(dev_add, NULL,0);
-  // masterReceive(&ucTemp, 1);
-        
-  // stopI2C2();
 	return ucTemp;
 } /* ReadReg() */
 
 static void readMulti(uint8_t dev_add,unsigned char ucAddr, unsigned char *pBuf, uint8_t iCount)
 {
-  // uint8_t ucTemp = (uint8_t) ucAddr;
-
-  
   readBytes(dev_add,ucAddr,iCount, pBuf);
 
-  // startI2C2();
-  // masterSend(dev_add, &ucAddr,1);
-  // restartI2C2();
-  // masterSend(dev_add, NULL,0);
-  // masterReceive(pBuf, iCount);
-  // stopI2C2();
   
 } /* readMulti() */
 
 static void writeMulti(uint8_t dev_add, uint8_t ucAddr, uint8_t *pBuf, uint8_t iCount)
 {
-  
-	
   writeBytes(dev_add, ucAddr, iCount, pBuf);
 
-  // startI2C2();
-  // masterSend(dev_add, ucTemp, iCount+1);
-  // stopI2C2();
-	// rc = write(file_i2c, ucTemp, iCount+1);
-	// if (rc != iCount+1) {};
 } /* writeMulti() */
 //
 // Write a 16-bit value to a register
@@ -221,18 +153,11 @@ static void writeReg16(uint8_t dev_add, uint8_t ucAddr, unsigned short usValue)
 {
   uint8_t ucTemp[4];
 
-	// ucTemp[0] = ucAddr;
 	ucTemp[0] = (uint8_t)(usValue >> 8); // MSB first
 	ucTemp[1] = (uint8_t)usValue;
 
   writeBytes(dev_add, ucAddr, 2, ucTemp);
 
-  // startI2C2();
-  // masterSend(dev_add, ucTemp, 3);
-
-  // stopI2C2();
-	// rc = write(file_i2c, ucTemp, 3);
-	// if (rc != 3) {}; // suppress warning
 } /* writeReg16() */
 //
 // Write a single register/value pair
@@ -241,15 +166,8 @@ static void writeReg(uint8_t dev_add, uint8_t ucAddr, uint8_t ucValue)
 {
   uint8_t ucTemp= ucValue;
 
-	
-
   writeBytes(dev_add, ucAddr, 1, &ucTemp);
 
-  // startI2C2();
-  // masterSend(dev_add, ucTemp, 2);
-  // stopI2C2();
-	// rc = write(file_i2c, ucTemp, 2);
-	// if (rc != 2) {}; // suppress warning
 } /* writeReg() */
 
 //
@@ -262,11 +180,12 @@ static void writeRegList(uint8_t dev_add, uint8_t *ucList)
 
 	while (ucCount)
 	{
-    startI2C2();
-    masterSend(dev_add, (uint8_t *) ucList, 2);
-    stopI2C2();
-		// rc = write(file_i2c, ucList, 2);
-		// if (rc != 2) {};
+    // startI2C2();
+    // masterSend(dev_add, (uint8_t *) ucList, 2);
+    // stopI2C2();
+
+    writeByte(dev_add, *ucList, *(ucList+1));
+
 		ucList += 2;
 		ucCount--;
 	}
@@ -308,11 +227,12 @@ static int getSpadInfo(uint8_t dev_add, uint8_t *pCount, uint8_t *pTypeIsApertur
   {
     if (readReg(dev_add,0x83) != 0x00) break;
     iTimeout++;
-    usleep(5000);
+    delay5ms();
   }
   if (iTimeout == MAX_TIMEOUT)
   {
-    fprintf(stderr, "Timeout while waiting for SPAD info\n");
+    put_string("Timeout while waiting for SPAD info\n");
+    // fprintf(stderr, "Timeout while waiting for SPAD info\n");
     return 0;
   }
   writeReg(dev_add,0x83,0x01);
@@ -748,7 +668,7 @@ static int performSingleRefCalibration(uint8_t dev_add,uint8_t vhv_init_byte)
   while ((readReg(dev_add,RESULT_INTERRUPT_STATUS) & 0x07) == 0)
   {
     iTimeout++;
-    usleep(5000);
+    delay5ms();
     if (iTimeout > 100) { return 0; }
   }
 
@@ -762,15 +682,14 @@ static int performSingleRefCalibration(uint8_t dev_add,uint8_t vhv_init_byte)
 //
 // Initialize the vl53l0x
 //
-static int initSensor(uint8_t dev_add,int bLongRangeMode)
+int initSensor(uint8_t dev_add,int bLongRangeMode)
 {
   uint8_t spad_count=0, spad_type_is_aperture=0, ref_spad_map[6];
   uint8_t ucFirstSPAD, ucSPADsEnabled;
   int i;
 
   // set 2.8V mode
-  writeReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,
-  readReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01); // set bit 0
+  writeReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV, readReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01); // set bit 0
   // Set I2C standard mode
   writeRegList(dev_add,ucI2CMode);
   stop_variable = readReg(dev_add,0x91);
@@ -783,7 +702,8 @@ static int initSensor(uint8_t dev_add,int bLongRangeMode)
   getSpadInfo(dev_add,&spad_count, &spad_type_is_aperture);
 
   readMulti(dev_add,GLOBAL_CONFIG_SPAD_ENABLES_REF_0, ref_spad_map, 6);
-  //printf("initial spad map: %02x,%02x,%02x,%02x,%02x,%02x\n", ref_spad_map[0], ref_spad_map[1], ref_spad_map[2], ref_spad_map[3], ref_spad_map[4], ref_spad_map[5]);
+  //printf("initial spad map: %02x,%02x,%02x,%02x,%02x,%02x\n", ref_spad_map[0],
+  // ref_spad_map[1], ref_spad_map[2], ref_spad_map[3], ref_spad_map[4], ref_spad_map[5]);
   writeRegList(dev_add,ucSPAD);
   ucFirstSPAD = (spad_type_is_aperture) ? 12: 0;
   ucSPADsEnabled = 0;
@@ -798,7 +718,8 @@ static int initSensor(uint8_t dev_add,int bLongRangeMode)
     {
       ucSPADsEnabled++;
     }
-  } // for i
+  }
+
   writeMulti(dev_add,GLOBAL_CONFIG_SPAD_ENABLES_REF_0, ref_spad_map, 6);
   //printf("final spad map: %02x,%02x,%02x,%02x,%02x,%02x\n", ref_spad_map[0], 
   //ref_spad_map[1], ref_spad_map[2], ref_spad_map[3], ref_spad_map[4], ref_spad_map[5]);
@@ -807,11 +728,10 @@ static int initSensor(uint8_t dev_add,int bLongRangeMode)
   writeRegList(dev_add,ucDefTuning); // long list of magic numbers
 
   // change some settings for long range mode
-  if (bLongRangeMode)
-  {
-	writeReg16(dev_add,FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, 13); // 0.1
-	setVcselPulsePeriod(dev_add, VcselPeriodPreRange, 18);
-	setVcselPulsePeriod(dev_add, VcselPeriodFinalRange, 14);
+  if (bLongRangeMode){
+    writeReg16(dev_add,FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, 13); // 0.1
+    setVcselPulsePeriod(dev_add, VcselPeriodPreRange, 18);
+    setVcselPulsePeriod(dev_add, VcselPeriodFinalRange, 14);
   }
 
   // set interrupt configuration to "new sample ready"
@@ -822,9 +742,13 @@ static int initSensor(uint8_t dev_add,int bLongRangeMode)
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0xe8);
   setMeasurementTimingBudget(dev_add, measurement_timing_budget_us);
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0x01);
+
   if (!performSingleRefCalibration(dev_add,0x40)) { return 0; }
+
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0x02);
+
   if (!performSingleRefCalibration(dev_add,0x00)) { return 0; }
+
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0xe8);
   return 1;
 } /* initSensor() */
@@ -837,7 +761,7 @@ uint16_t readRangeContinuousMillimeters(uint8_t dev_add)
   while ((readReg(dev_add, RESULT_INTERRUPT_STATUS) & 0x07) == 0)
   {
     iTimeout++;
-    usleep(5000);
+    delay5ms();
     if (iTimeout > 50)
     {
       return -1;
@@ -874,7 +798,7 @@ int tofReadDistance(uint8_t dev_add)
   while (readReg(dev_add,SYSRANGE_START) & 0x01)
   {
     iTimeout++;
-    usleep(5000);
+    delay5ms();
     if (iTimeout > 50)
     {
       return -1;
@@ -888,39 +812,31 @@ int tofReadDistance(uint8_t dev_add)
 int tofGetModel(uint8_t dev_add,int *model, int *revision)
 {
   uint8_t ucTemp[2];
-  // int i;
-
-	// if (file_i2c == -1)
-	// 	return 0;
-
-	if (model)
+  if (model)
 	{
 		ucTemp[0] = REG_IDENTIFICATION_MODEL_ID;
 
     readBytes(dev_add,ucTemp[0],1, ucTemp);
-    // startI2C2();
-    // masterSend(dev_add, ucTemp, 1); // write address of register to read
-    // restartI2C2();
-    // masterSend(dev_add,NULL,0);
-    // masterReceive(ucTemp, 1);
-    // stopI2C2();
-		// if (i == 1)
-			*model = ucTemp[0];
+    
+    *model = ucTemp[0];
 	}
 	if (revision)
 	{
 		ucTemp[0] = REG_IDENTIFICATION_REVISION_ID;
     readBytes(dev_add,ucTemp[0],1, ucTemp);
-    // startI2C2();
-		// masterSend(dev_add, ucTemp, 1); // write address of register to read
-    // restartI2C2();
-    // masterSend(dev_add,NULL,0);
-    // masterReceive(ucTemp, 1);
-		// // if (i == 1)
-		// stopI2C2();
+    
     *revision = ucTemp[0];
 	}
 	return 1;
 
-} /* tofGetModel() */
+} 
+
+
+void setAddress(uint8_t dev_add,uint8_t new_addr)
+{
+  writeByte(dev_add,I2C_SLAVE_DEVICE_ADDRESS, new_addr & 0x7F);
+}
+
+
+/* tofGetModel() */
 
