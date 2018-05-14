@@ -1,6 +1,6 @@
 /* 
  * File:   main.c
- * Author: André Gradim
+ * Author: Andrï¿½ Gradim
  *
  * Created on May 4, 2018, 7:14 PM
  */
@@ -14,6 +14,12 @@
 #include "../I2C.X/i2c2.h"
 #include "mpu6050.h"
 #include "../interrupts.h"
+
+#define TEST_ACC
+//#define TEST_GYRO
+//#define TEST_TEMP
+
+//#define USE_TEXT
 
 //void initI2C2();
 
@@ -36,7 +42,7 @@ int main(int argc, char** argv) {
     
     openI2C2();
     
-    put_string("MPU init:\n");
+    put_string("Initializing MPU:\n");
     init_MPU();
     put_string("MPU init done!\n");
     
@@ -46,47 +52,60 @@ int main(int argc, char** argv) {
     uint16_t g1,g2,g3;
     uint16_t temperature;
     
-    //Change led pin accordingly
-    //TRISBbits.TRISB3 = 0;    
-    int attempt = 0;
-    uint8_t temp;
+    #ifndef TEST_ACC
+    #ifndef TEST_GYRO
+    #ifndef TEST_TEMP
+    put_string("ERROR: no test defined!");
+    return 0;
+    #endif
+    #endif
+    #endif
+
+
     while(1){
-        //readBytes(MPU6050_DEFAULT_ADDRESS, MPU6050_RA_INT_STATUS ,1, &temp);
-        //if(temp & 0x01){
-            //LATBbits.LATB3 = 1;
-            //put_uint8(attempt);
-            //put_char('\n');
-            attempt++;
-            //readMPU(mpu6050);
-            read_data(&a1,&a2,&a3,&g1,&g2,&g3,&temperature);
-            //put_string("A: ");
-            put_uint16(a1);
-            put_char(' ');
-            put_uint16(a2);
-            put_char(' ');
-            put_uint16(a3);
-            //put_char(' ');
+        read_data(&a1,&a2,&a3,&g1,&g2,&g3,&temperature);
+        #ifdef TEST_ACC
+        #ifdef USE_TEXT
+        put_string("A: ");
+        #endif
 
-            //put_string("G: ");
-            //put_uint16(g1);
-            //put_char(' ');
-            //put_uint16(g2);
-            //put_char(' ');
-            //put_uint16(g3);
-            //put_char(' ');
+        put_uint16(a1);
+        put_char(' ');
+        put_uint16(a2);
+        put_char(' ');
+        put_uint16(a3);
+        put_char(' ');
+        #endif
 
-            //put_string("T: ");
-            //put_uint16(temperature);
-            put_char('\n');
 
-            //LATBbits.LATB3 = 0;
-            //delay a few milisecconds before new measurements
-            int temp = 0;
-            while( temp < 7150){
-                temp = temp + 1;
-            }
+        #ifdef TEST_GYRO
+        #ifdef USE_TEXT
+        put_string("G: ");
+        #endif
+        put_uint16(g1);
+        put_char(' ');
+        put_uint16(g2);
+        put_char(' ');
+        put_uint16(g3);
+        put_char(' ');
+        #endif
 
-       // }
+
+        #ifdef TEST_TEMP
+        #ifdef USE_TEXT
+        put_string("T: ");
+        #endif
+        put_uint16(temperature);
+        #endif
+
+        put_char('\n');
+
+        
+        //delay a few (5ms) milisecconds before new measurements
+        int temp = 0;
+        while( temp < 7150){
+            temp = temp + 1;
+        }
     }
 
     return (EXIT_SUCCESS);
