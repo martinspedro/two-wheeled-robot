@@ -15,13 +15,25 @@
 #include "tof.h"
 #include "../interrupts.h"
 
+//to test address changes uncomment
+//#define TEST_NEW_ADDRESS
 
-//void initI2C2();
+#define DEFAULT_ADDRESS 0x29
 
-/*
- * 
- */
-int main(int argc, char** argv) {
+#define NEW_ADDRESS 0x30
+
+
+#ifndef TEST_NEW_ADDRESS
+#define ADDRESS1 DEFAULT_ADDRESS
+#endif
+
+#ifdef TEST_NEW_ADDRESS
+#define ADDRESS1 NEW_ADDRESS
+#endif
+
+
+
+int main(int argc, char** argv){
     
     config_UART1(115200, 8, 'N', 1);
 
@@ -35,28 +47,28 @@ int main(int argc, char** argv) {
     configure_global_interrupts();
     Enable_Global_Interrupts();
     
-    
-    
     openI2C2();
-    put_char('H');
     
     int i;
     int iDistance;
     int model, revision;
-    uint8_t dev_add = 0x29;
-	// For Raspberry Pi's, the I2C channel is usually 1
-	// For other boards (e.g. OrangePi) it's 0
-	i = tofInit(dev_add, 1); // set long range mode (up to 2m)
+	
+    put_string("Initializing VLX");
+    #ifdef TEST_NEW_ADDRESS
+    setAddress(DEFAULT_ADDRESS,NEW_ADDRESS);
+    #endif
+
+
+	i = initSensor(ADDRESS1, 1); // set long range mode (up to 2m)
     
-	if (i != 1)
-	{
-        put_char('F');
-		return -1; // problem - quit
+	if (i !=1 ){
+        put_string("ERROR in init: ");
+        put_uint8(i);
+		return 1; // problem - quit
 	}
-    put_char('d');
+    put_string("\nVLX init done!\n");
     
-	i = tofGetModel(dev_add, &model, &revision);
-    put_char('r');
+	i = tofGetModel(ADDRESS1, &model, &revision);
     
 	put_string("Model ID: ");
     put_uint16((uint16_t) model);
@@ -66,30 +78,29 @@ int main(int argc, char** argv) {
     put_uint16((uint16_t) revision);
 	put_char('\n');
     
+    char p;
+    get_char(&p);
+    
     int x;
     int temp = 0;
     
-        
     while(1){ 
         
-        iDistance = tofReadDistance(dev_add);
-		if (iDistance < 4096) // valid range?
+        iDistance = tofReadDistance(ADDRESS1);
+		if (iDistance < 4096){ // valid range?
 			put_uint16((uint16_t) iDistance);
             put_char('\n');
+        }
             
-            //delay 50 ms
+        //delay 50 ms
 		for(x =0 ; x <10; x++){
             temp = 0;
             while( temp < 7150){
                 temp = temp + 1;
             }
         }
-   
-        
-    }
 
+    }
     return (EXIT_SUCCESS);
 }
-
-
 
