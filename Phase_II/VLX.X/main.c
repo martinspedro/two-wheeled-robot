@@ -6,153 +6,101 @@
  */
 
 
-#include "header_pragma.h"
+#include "../DEVCFGx_config_bits.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "uart1.h"
-#include "i2c2.h"
+#include "../I2C.X/i2c2.h"
+#include "../UART.X/uart1.h"
+#include "tof.h"
+#include "../interrupts.h"
 
-//void initI2C2();
+//to test address changes uncomment
+//#define TEST_NEW_ADDRESS
 
-/*
- * 
- */
-int main(int argc, char** argv) {
+#define DEFAULT_ADDRESS 0x29
+
+#define NEW_ADDRESS 0x30
+
+
+#ifndef TEST_NEW_ADDRESS
+#define ADDRESS1 DEFAULT_ADDRESS
+#endif
+
+#ifdef TEST_NEW_ADDRESS
+#define ADDRESS1 NEW_ADDRESS
+#endif
+
+
+
+int main(int argc, char** argv){
     
-    //configureUART1(115200,40000000);
     config_UART1(115200, 8, 'N', 1);
-    enable_UART1();
+
+    ENABLE_UART1_PHERIPHERAL;
+    flush_RX_buffer();
+    flush_TX_buffer();
+    ENABLE_UART1_ERROR_DETECTION_INT;
+    ENABLE_UART1_TX_INT;
+    ENABLE_UART1_RX_INT;
     
+    configure_global_interrupts();
+    Enable_Global_Interrupts();
     
     openI2C2();
-    send_char('H');
     
     int i;
     int iDistance;
     int model, revision;
-    uint8_t dev_add = 0x29;
-	// For Raspberry Pi's, the I2C channel is usually 1
-	// For other boards (e.g. OrangePi) it's 0
-	i = tofInit(dev_add, 1); // set long range mode (up to 2m)
+	
+    put_string("Initializing VLX");
+    #ifdef TEST_NEW_ADDRESS
+    setAddress(DEFAULT_ADDRESS,NEW_ADDRESS);
+    #endif
+
+
+	i = initSensor(ADDRESS1, 1); // set long range mode (up to 2m)
     
-	if (i != 1)
-	{
-        send_char('F');
-		return -1; // problem - quit
+	if (i !=1 ){
+        put_string("ERROR in init: ");
+        put_uint8(i);
+		return 1; // problem - quit
 	}
-    send_char('d');
+    put_string("\nVLX init done!\n");
     
-	i = tofGetModel(dev_add, &model, &revision);
-    send_char('r');
-    print_uint16((uint16_t) model);
+	i = tofGetModel(ADDRESS1, &model, &revision);
     
-    print_uint16((uint16_t) revision);
-	//printf("Model ID - %d\n", model);
-	//printf("Revision ID - %d\n", revision);
+	put_string("Model ID: ");
+    put_uint16((uint16_t) model);
+    put_char('\n');
+    
+    put_string("Revision ID: ");
+    put_uint16((uint16_t) revision);
+	put_char('\n');
+    
+    char p;
+    get_char(&p);
+    
     int x;
     int temp = 0;
     
-    for (i=0; i<1200; i++) // read values 20 times a second for 1 minute
-	{
-		iDistance = tofReadDistance(dev_add);
-		if (iDistance < 4096) // valid range?
-			print_uint16((uint16_t) iDistance);
-        send_char('\n');
+    while(1){ 
+        
+        iDistance = tofReadDistance(ADDRESS1);
+		if (iDistance < 4096){ // valid range?
+			put_uint16((uint16_t) iDistance);
+            put_char('\n');
+        }
+            
+        //delay 50 ms
 		for(x =0 ; x <10; x++){
             temp = 0;
             while( temp < 7150){
                 temp = temp + 1;
             }
         }
-	}
 
-
-    
-    while(1){   
-        
-        
-
-
-
-    //     putChar('R');
-    //     char in = getChar();
-        
-        
-    //     /////////////////////////////////
-    //     /*putChar('w'); 
-        
-    //     waitI2C2();
-    //     startI2C2();
-        
-    //     uint8_t dev_address = 0x68;
-    //     uint8_t buf_size = 2;
-    //     uint8_t transfer_buf[] = {0x71, 0x01};
-                
-    //     masterSend(dev_address, transfer_buf, buf_size);
-        
-    //     waitI2C2();
-    //     stopI2C2();
-        
-    //     */
-        
-    //     ///////////////////////////////
-    //     putChar('r');
-        
-    //     waitI2C2();
-    //     startI2C2();
-        
-    //     uint8_t dev_address = 0x68;
-    //     uint8_t buf_size = 1;
-    //     uint8_t transfer_buf2[] = {0x19};
-                
-    //     masterSend(dev_address, transfer_buf2, buf_size);
-        
-    //     waitI2C2();
-    //     stopI2C2();
-        
-    //     ///
-        
-    //     waitI2C2();
-    //     startI2C2();
-    //     dev_address = 0x68;
-        
-    //     masterSend(dev_address, NULL, 0);
-        
-        
-    //     uint8_t bytes_to_read = 1;
-    //     uint8_t buffer[bytes_to_read];
-        
-    //     masterReceive( buffer, bytes_to_read);
-        
-    //     waitI2C2();
-    //     stopI2C2();
-        
-    //     /////////////////////////////////
-    //     putChar('w'); 
-        
-    //     waitI2C2();
-    //     startI2C2();
-        
-    //     dev_address = 0x68;
-    //     buf_size = 2;
-    //     uint8_t transfer_buf[] = {0x19, 0x22};
-                
-    //     masterSend(dev_address, transfer_buf, buf_size);
-        
-    //     waitI2C2();
-    //     stopI2C2();
-        
-       
-        
-        
-        
-        
-        
     }
-
     return (EXIT_SUCCESS);
 }
-
-
 

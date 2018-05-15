@@ -32,25 +32,6 @@ void openI2C2();
  */
 void closeI2C2();
 
-/** \brief Send data to dev_address, automatically selects W|!R byte on address
- * 
- * \pre    None
- * \param  dev_address - Device address, data - Array containing the data to send, data_size - Number of bytes to send
- * \return None
- * 
- * \author André Gradim
- */
-void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size);
-
-/** \brief Gets bytes_to_read bytes from I2C bus into buffer
- * 
- * \pre    None
- * \param  buffer[] - place to hold the bytes, bytes_to_read - n. of bytes to read
- * \return None
- * 
- * \author André Gradim
- */
-void masterReceive(uint8_t* buffer,uint8_t bytes_to_read);
 
 /** \brief Check if receive buffer is full
  * 
@@ -62,62 +43,99 @@ void masterReceive(uint8_t* buffer,uint8_t bytes_to_read);
  */
 int dataReadyI2C2(void);
 
-//* ************************************************************************** */
-// Section: Internal functions                                                 */
-//* ************************************************************************** */
 
-/** \brief Start sequence initializer
- * 
- * \pre    I2C bus must be idle
- * \param  None
- * \return 0 on success
- * 
- * \author André Gradim
- */
-int startI2C2();
-
-/** \brief Stop sequence initializer
- * 
- * \pre    I2C bus must be idle
- * \param  None
- * \return 0 on success
- * 
- * \author André Gradim
- */
-int stopI2C2();
-
-/** \brief Resytart sequence initializer
- * 
- * \pre    I2C bus must be idle
- * \param  None
- * \return 0 on success
- * 
- * \author André Gradim
- */
-int restartI2C2();
-
-/** \brief Send !ACK or NACK sequence
+/** \brief Generic read operation from ic2 device
  * 
  * \pre    None
- * \param  !ACK or NACK(0 or 1) as input
- * \return 0 on success, other in case of error
+ * \param  devAddr device address
+ * \param  reg Register to read from
+ * \param n_bytes # bytes to read
+ * \param buffer  Place to store the data
+ * \return 0 on success [1 on bus collision (not implemented)]
  * 
  * \author André Gradim
  */
-int ackI2C2(int ackType);
+uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer);
 
-
-/** \brief Check if I2C bus is idle
+/** \brief Single byte read operation from ic2 device
  * 
  * \pre    None
- * \param  None
- * \return 1 when bus is idle
+ * \param  devAddr device address
+ * \param  reg Register to read from
+ * \param buffer  Place to store the data
+ * \return 0 on success [1 on bus collision (not implemented)]
  * 
  * \author André Gradim
  */
-int idleI2C2(void);
+uint8_t readByte(uint8_t devAddr, uint8_t reg, uint8_t* buffer);
 
-/** \brief Busy wait until I2C bus is idle
+/** \brief Generic write operation from ic2 device
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to write to
+ * \param  n_bytes # bytes to write
+ * \param  buffer  Place where the data to write is stored
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer);
+
+/** \brief Single byte write operation to ic2 device
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to write to
+ * \param  buffer  Place where the data to write is stored
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t writeByte(uint8_t devAddr, uint8_t reg, uint8_t buffer);
+
+/** \brief Write set of bits into byte operation to ic2 device
+ * 
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to write to
+ * \param  bitStart Order of the start bit
+ * \param  length Size of the set
+ * \param  data  Value of the set of bits
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t writeBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length, uint8_t data);
+
+
+/** \brief Write bit into byte operation to ic2 device
+ * 
+ * \pre    None
+ * \param  devAddr device address
+ * \param  reg Register to write to
+ * \param  bitNum  Number of the bit to change
+ * \param data Value of the bit to change
+ * \return 0 on success [1 on bus collision (not implemented)]
+ * 
+ * \author André Gradim
+ */
+uint8_t writeBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t data); 
+
+/** \brief Write bit into byte operation to ic2 device
+ * 
+ * \pre    Needs an array to be passed
+ * \param  pointer Pointer to array of size >= 10
+ * \return 0 when no device is connect else # of connect devices
+ * \return pointer Array of addresses with the connected devices
+ * 
+ * \author André Gradim
+ */
+uint8_t i2c_ping(uint8_t* pointer);
+
+
+/** \brief Get the last value out of the I2C Rx buffer and clear the buffer overflow bit
  * 
  * \pre    None
  * \param  None
@@ -125,27 +143,8 @@ int idleI2C2(void);
  * 
  * \author André Gradim
  */
-void waitI2C2(void);
+void clearI2CBuffer();
 
-/** \brief Enable reception and gets 1 byte from I2C bus
- * 
- * \pre    None
- * \param  None
- * \return 1 when full
- * 
- * \author André Gradim
- */
-uint8_t masterReadI2C2(void);
-
-/** \brief Send 1 byte to I2C bus
- * 
- * \pre    None
- * \param  Byte to send
- * \return 0 on success [1 on bus collision (not implemented)]
- * 
- * \author André Gradim
- */
-uint8_t masterWriteI2C2(uint8_t data_out);
 
 
 
