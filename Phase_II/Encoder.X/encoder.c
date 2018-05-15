@@ -46,7 +46,7 @@
 #define EXT_INT_FALLING_EDGE 0      //!< External Interrupt Edge Polarity sensible to Falling Edge Detection
 
 
-
+#define DEBUG
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/

@@ -49,7 +49,7 @@ void configure_external_interrupts(void);
  * 
  * \author Pedro Martins
  */
-void init_encoder_state(void)
+void init_encoder_state(void);
 
 #endif	/* ENCODER_H */
 
