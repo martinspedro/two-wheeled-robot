@@ -23,21 +23,29 @@
 
 #define IO_ANALOG_PIN_REGISTER TRISB    //!< Analog Pin Register
 
+ #define NUM_CONVERSIONS_PER_INTERRUPT 8     //!< 8 Conversions will be written to the buffer
 
 #ifdef AUTO_SAMPLING_MODE
-    #define NUM_SAMPLES_PER_INTERRUPT 8
+    #define ACQUISITION_TIME_TAD      8
+    #define CONVERSION_CLOCK_PERIOD   124
 #endif
 
 #define DEFAULT_ADC_CH_MUXA 0
 #define DEFAULT_ADC_CH_MUXB 0
 
-#define RESET_IF_ADC {IFS1bits.AD1IF = 0;}  //!< Reset Interrupt Flag for ADC
+#define RESET_IF_ADC {IFS1bits.AD1IF = 0;}  //!< Clear ADC Interrupt Flag
 
 #define ADC_IPL  4     //!< ADC Priority Level     
 #define ADC_ISPL 0     //!< ADC Sub-Priority Level 
 
-#define ACQUISITION_TIME_TAD 8
-#define CONVERSION_CLOCK_PERIOD 124
+
+
+#define ADC_BUFFER_ADDRESS (&ADC1BUF0)
+
+/*******************************************************************************
+ *                       CLASS VARIABLES DEFINITION
+ ******************************************************************************/
+
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -45,7 +53,10 @@
 void adc_peripheral_init(void)
 {
     DISABLE_ADC;    // Disable ADC module to enable configuration
-
+    DISABLE_ADC_INTERRUPTS;
+    RESET_ANALOG_PINS;      // Set all pins as digital
+    RESET_IF_ADC;
+    
     /***************************************************************************
      *                        ADC CONTROL REGISTERS
      **************************************************************************/
@@ -74,7 +85,7 @@ void adc_peripheral_init(void)
     /* Buffer contents will be overwritten by the ADC next conversion sequence 
      * (Normal Operation)
      */
-    AD1CON1bits.CLRASAM = 0;
+    AD1CON1bits.CLRASAM = 1;
 
     
     /* ADC Sample Auto-Start bit
@@ -99,7 +110,7 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON1bits.SAMP = 0;
     #elif AUTO_SAMPLING_MODE
-        AD1CON1bits.SAMP = 1;
+        AD1CON1bits.SAMP = 0;
     #endif 
     
     
@@ -122,7 +133,8 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         DISABLE_INPUT_SCANNING;
     #elif AUTO_SAMPLING_MODE
-        ENABLE_INPUT_SCANNING;
+        //ENABLE_INPUT_SCANNING;
+        DISABLE_INPUT_SCANNING;
     #endif 
     
     
@@ -134,7 +146,7 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON2bits.SMPI = 0b000;
     #elif AUTO_SAMPLING_MODE
-        AD1CON2bits.SMPI = NUM_SAMPLES_PER_INTERRUPT;
+        AD1CON2bits.SMPI = NUM_CONVERSIONS_PER_INTERRUPT - 1;
     #endif 
     
     
@@ -147,7 +159,7 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON2bits.BUFM = 0;
     #elif AUTO_SAMPLING_MODE
-        AD1CON2bits.BUFM = 1;
+        AD1CON2bits.BUFM = 0;
     #endif 
     
     
@@ -202,8 +214,6 @@ void adc_peripheral_init(void)
     // Set Priority and sub-priority levels for INT1 & INT2
     IPC6bits.AD1IP = ADC_IPL  & 0x07;
     IPC6bits.AD1IS = ADC_ISPL & 0x03;
-    
-    RESET_IF_ADC;
 }
 
 uint8_t config_input_scan(uint8_t channel)
@@ -220,7 +230,7 @@ uint8_t config_input_scan(uint8_t channel)
     uint16_t channel_bit_string = (uint16_t) (0b1 << (channel & 0x0F)) & 0x0FF;
     
     /* Selects channels for ANx input scan (active '1') */
-    AD1CHSSET = channel_bit_string;
+    AD1CSSLbits.CSSL = channel_bit_string;
     
     return ADC_SUCCESS;
 }
@@ -232,7 +242,6 @@ uint8_t init_ADC_ch(uint8_t channel)
     {
         return ADC_ERROR;
     }
-    
     
     // Converts the hexadecimal channel value to a binary string.
     // The bit in the position given the number channel is set
@@ -260,6 +269,7 @@ uint8_t select_ADC_ch(uint8_t channel)
     {
         return ADC_ERROR;
     }
+    
     AD1CHSbits.CH0SA = channel & 0x0F;
     return ADC_SUCCESS;
 }
@@ -280,7 +290,22 @@ uint16_t get_analog_value(void)
 
 void __ISR(_ADC_VECTOR, IPL4SOFT) ADC_ISR(void)
 {
-    LATBbits.LATB4 = 1;
+    LATDbits.LATD4 = 1;
+    //AD1CON1bits.ASAM = 0;
+    //LATBbits.LATB5 = AD1CON1bits.SAMP; // HAS_CONVERSION_FINISHED;
+    
+    uint16_t aux;
+    volatile int  *adc_buffer_p;
+    adc_buffer_p = (BUFFER_FILL_STATUS == 1) ? ADC_BUFFER_ADDRESS : ADC_BUFFER_ADDRESS + 0x80;
+    uint8_t k;
+    
+    for( k = 1; k < NUM_CONVERSIONS_PER_INTERRUPT; k++)
+    {
+        aux = *(adc_buffer_p++);
+    }
+  
     RESET_IF_ADC;
-    LATBbits.LATB4 = 0;
+    //LATBbits.LATB5 = HAS_CONVERSION_FINISHED;
+    //AD1CON1bits.ASAM = 1;
+    LATDbits.LATD4 = 0;
 }

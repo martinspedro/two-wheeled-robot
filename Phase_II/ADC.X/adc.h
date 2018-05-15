@@ -14,7 +14,8 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define AUTO_SAMPLING_MODE 1
+//#define AUTO_SAMPLING_MODE 1
+#define MANUAL_MODE
 
 #define ADC_ERROR   1
 #define ADC_SUCCESS 0
@@ -26,19 +27,22 @@
 #define DISABLE_INPUT_SCANNING {AD1CON2bits.CSCNA = 0;}
 #define ENABLE_INPUT_SCANNING  {AD1CON2bits.CSCNA = 1;}
 
-#define HAS_CONVERSION_FINISHED AD1CON1bits.DONE
-#define BUFFER_FILL_STATUS      AD1CON2bits.BUFS
 
 #define ENABLE_INPUT_OFFSET_CALIBRATION_MODE  {AD1CON2bits.OFFCAL = 1;}
 #define DISABLE_INPUT_OFFSET_CALIBRATION_MODE {AD1CON2bits.OFFCAL = 0;}
 
 #define ENABLE_ADC_INTERRUPTS   {IEC1bits.AD1IE = 1;}     //!< Enables  ADC interrupt 
-#define DISABLE_ADC_INTERRUPTS  {IEC1bits.AD1IE = 1;}     //!< Disables ADC interrupt 
+#define DISABLE_ADC_INTERRUPTS  {IEC1bits.AD1IE = 0;}     //!< Disables ADC interrupt 
+
+#define RESET_ANALOG_PINS {AD1PCFG = 0xFFFF;}
+#define HAS_CONVERSION_FINISHED AD1CON1bits.DONE
+#define BUFFER_FILL_STATUS AD1CON2bits.BUFS
 
 #ifdef MANUAL_MODE
     #define START_SAMPLING   {AD1CON1bits.SAMP = 1;}
     #define START_CONVERSION {AD1CON1bits.SAMP = 0;}
 #endif
+
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
@@ -52,7 +56,16 @@
  * 
  * \author Pedro Martins
  */
-void adc_init(void);
+void adc_peripheral_init(void);
+
+
+/** \brief ADC Input Scaning configuration routine
+ * 
+ * This routine configures the pins to be sequentially scanned
+ * 
+ * \author Pedro Martins
+ */
+uint8_t config_input_scan(uint8_t channel);
 
 
 /** \brief Initializes an ADC channel

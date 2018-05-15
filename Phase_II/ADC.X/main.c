@@ -27,54 +27,61 @@ void delay(void){
     }
 }
 
-/*
- * 
- */
+
 int main(int argc, char** argv) {
     uint16_t analog_value;
-        TRISBbits.TRISB4 = 0;
-    LATBbits.LATB4 = 0;
-
+    
+    TRISDbits.TRISD4 = 0;
+    TRISDbits.TRISD5 = 0;
+    LATDbits.LATD4 = 0;
+    LATDbits.LATD5 = 0;
+    
     TRISAbits.TRISA3 = 0;
-    TRISFbits.TRISF2 = 0;
     LATAbits.LATA3 = 1;
-    LATFbits.LATF2 = 1;
     
+#ifdef MANUAL_MODE
+        uint8_t num;
     config_UART1(115200, 8, 'N', 1);
-    enable_UART1();
-    
-    send_char('1');
+    ENABLE_UART1_PHERIPHERAL;
+#endif
     
     adc_peripheral_init();
-    config_input_scan(0);
     init_ADC_ch(0);
+    config_input_scan(0);
     
-    configure_global_interrupts();
-    ENABLE_ADC_INTERRUPTS;
-    Enable_Global_Interrupts();
+    
+    #ifdef AUTO_SAMPLING_MODE
+        configure_global_interrupts();
+        ENABLE_ADC_INTERRUPTS;
+        Enable_Global_Interrupts();
+    #endif
+    
     ENABLE_ADC;
     
     while(1){
+        //LATBbits.LATB5 = IFS1bits.AD1IF;
+        //IFS1bits.AD1IF = 0;
+        
+        //LATBbits.LATB5 = HAS_CONVERSION_FINISHED;
+        
         #ifdef MANUAL_MODE
             PORTAbits.RA3 = 1;
-            PORTFbits.RF2 = 1;
 
-
-            start_conversion();
+            START_SAMPLING;
             delay();
 
-            end_conversion();
-            send_char('S');
-            while(!conversion_finnished());
-            send_char('D');
-            send_char(' ');
+            START_CONVERSION;
+            put_char('S');
+            while(!HAS_CONVERSION_FINISHED);
+            
+            put_char('C');
+            put_char(' ');
             PORTAbits.RA3 = 0;
 
             analog_value = get_analog_value();
-            print_uint8(bin_2_volt(analog_value));
+            put_uint8(bin_2_volt(analog_value));
 
-            send_char('\n');
-            PORTFbits.RF2 = 0;
+            put_char('\n');
         #endif
     }
     return (EXIT_SUCCESS);
