@@ -167,11 +167,11 @@ uint8_t masterWriteI2C2(uint8_t data_out);
  * 
  * \pre    None
  * \param  dev_address - Device address, data - Array containing the data to send, data_size - Number of bytes to send
- * \return None
+ * \return 0 on success, 1 when NACK
  * 
  * \author André Gradim
  */
-void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size);
+uint8_t masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size);
 
 /** \brief Gets bytes_to_read bytes from I2C bus into buffer
  * 
@@ -398,23 +398,28 @@ uint8_t masterReadI2C2(void){
     #endif
 
     //Next it's needed to send acknowledge sequence (|ACK or NACK))
-    uint8_t temp = I2C2RCV;
-    return temp;
+    uint8_t aux =I2C2RCV;
+    return aux;
+    
 }
 
 uint8_t masterWriteI2C2(uint8_t data_out){
-     #ifndef INTERRUPTS_ON
+    #ifndef INTERRUPTS_ON
     while(!idleI2C2());
     #endif
     I2C2TRN = data_out;
     
     #ifndef INTERRUPTS_ON
-        while(I2C2STATbits.TRSTAT == 1);
+    while(I2C2STATbits.TRSTAT == 1);
     #endif
+    
+    
+
+
     //return() -> add bus collision detection
 }
 
-void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size){
+uint8_t masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size){
     
     uint8_t  temp_address;
     if( data_size == 0 || data == NULL){ //send a read request
@@ -424,19 +429,30 @@ void masterSend(uint8_t dev_address, uint8_t* data, uint8_t data_size){
     }
     
     //send the address byte + |W//R
-    do{
+    //do{
         masterWriteI2C2(temp_address);
+        
+        if(I2C2STATbits.ACKSTAT != 0){
+            return 1;
+        }
+        
+        
         while(!idleI2C2());
-    }while(!ackCompleteI2C2());
+    //}while(!ackCompleteI2C2());
     
     uint8_t index;
     for(index = 0; index < data_size; index++){
         //send each byte of the data
-        do{
+        //do{
             masterWriteI2C2(data[index]);
             while(!idleI2C2());
-        }while(!ackCompleteI2C2());
-    }    
+            
+            if(I2C2STATbits.ACKSTAT != 0){
+                return 1;
+            }
+        //}while(!ackCompleteI2C2());
+    }  
+    return 0;
 }
 
 
@@ -450,7 +466,8 @@ void masterReceive(uint8_t* buffer,uint8_t bytes_to_read){
         while(!idleI2C2());
         
         if( I2C2STATbits.I2COV == 1){
-            //putchar('O');//return error
+            I2C2STATbits.I2COV = 0;
+            put_string("ERROR::............................");
         }
 
         if (index == bytes_to_read){
@@ -465,12 +482,17 @@ void masterReceive(uint8_t* buffer,uint8_t bytes_to_read){
 
 uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer){
     startI2C2();
-    uint8_t temp = reg;
-    masterSend(devAddr, &reg,1);
+    if(masterSend(devAddr, &reg,1)){
+        *buffer = 0x00;
+        return 1;
+    }
     
     restartI2C2();
-    masterSend(devAddr, NULL,0);
-        
+    if(masterSend(devAddr, NULL,0)){
+        *buffer = 0x00;
+        return 1;
+    }
+    
     masterReceive(buffer, n_bytes);
     
     stopI2C2();
@@ -480,6 +502,7 @@ uint8_t readBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffer
 }
 
 uint8_t readByte(uint8_t devAddr, uint8_t reg, uint8_t* buffer){
+    *buffer = 0;
     return readBytes(devAddr,reg,1,buffer);
 }
 
@@ -502,9 +525,9 @@ int8_t readBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length, 
 
 int8_t readBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t *data) {
     uint8_t b;
-    uint8_t res = readByte(devAddr, reg, &b);
+    if(readByte(devAddr, reg, &b)) return 1;
     *data = b & (1 << bitNum);
-    return res;
+    return 0;
 }
 
 
@@ -522,11 +545,11 @@ uint8_t writeBytes(uint8_t devAddr, uint8_t reg, uint8_t n_bytes, uint8_t* buffe
     }
     
     
-    masterSend(devAddr, temp, n_bytes + 1);
+    uint8_t error = masterSend(devAddr, temp, n_bytes + 1);
     
     stopI2C2();
     //implement error detection
-    
+    if(error) return 1;
     return 0;
 }
 
@@ -545,7 +568,7 @@ uint8_t writeBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length
         data &= mask;
         b &= ~(mask);
         b |= data; 
-        writeBytes(devAddr, reg,1, &b);
+        if(writeBytes(devAddr, reg,1, &b)) return 1;
         return 0;
     } else {
         return 1;
@@ -554,11 +577,44 @@ uint8_t writeBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length
 
 uint8_t writeBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t data) {
     uint8_t b;
-    readBytes(devAddr, reg,1, &b);
+    if(readBytes(devAddr, reg,1, &b)) return 1;
     b = (data != 0) ? (b | (1 << bitNum)) : (b & ~(1 << bitNum));
     return writeBytes(devAddr, reg,1, &b);
 }
 
+
+uint8_t i2c_ping(uint8_t* pointer){
+    //uint8_t array[10]; -> 
+    uint8_t count=0;
+
+    uint8_t address = 0; 
+     
+    uint8_t attempt;
+    
+    //for(address = 1; address < 0x7F; address++){
+    uint8_t temp;
+    
+    
+    for(address = 0x0F; address < 0x7F;address++){
+        startI2C2();
+        attempt = masterSend(address,&temp,1);
+        stopI2C2();
+        if(attempt == 0){
+            *pointer = address;
+            pointer++;  
+            count++;
+        }
+    }
+    
+    return count;
+        
+    //}
+
+}
+void clearI2CBuffer(){
+    uint8_t temp1=I2C2RCV;
+    I2C2STATbits.I2COV = 0;
+}
 
 
 

@@ -123,6 +123,17 @@ uint8_t writeBits(uint8_t devAddr, uint8_t reg, uint8_t bitStart, uint8_t length
  */
 uint8_t writeBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t data); 
 
+/** \brief Write bit into byte operation to ic2 device
+ * 
+ * \pre    Needs an array to be passed
+ * \param  pointer Pointer to array of size >= 10
+ * \return 0 when no device is connect else # of connect devices
+ * \return pointer Array of addresses with the connected devices
+ * 
+ * \author André Gradim
+ */
+uint8_t i2c_ping(uint8_t* pointer);
+
 
 /* *****************************************************************************
  End of File
