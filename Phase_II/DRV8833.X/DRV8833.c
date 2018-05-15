@@ -19,21 +19,34 @@
 #include "DRV8833.h"
 
 
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
 #define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM1_duty_cycle(duty_cycle)
 #define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
 #define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM3_duty_cycle(duty_cycle)
 #define MOTOR_RIGHT_B_SET_PWM(duty_cycle) set_PWM4_duty_cycle(duty_cycle)
 
+#define nSLEEP_TRIS TRISDbits.TRISD5
+#define nFAULT_TRIS TRISDbits.TRISD6
+
+
+
+/*******************************************************************************
+ *                         CLASS METHODS
+ ******************************************************************************/
+
 void configure_DRV8833_interface(void)
 {
-    // Configure I/O
-    TRISDbits.TRISD5 = 0;   // nSLEEP (Output)
-    TRISDbits.TRISD6 = 1;   // nFAULT (Input)
-   
     DISABLE_DRV8833;
+
+    // Configure I/O
+    nSLEEP_TRIS = 0;   // nSLEEP (Output)
+    nFAULT_TRIS = 1;   // nFAULT (Input)
+   
     
     // Configure current monitoring
-    adc_init();
+    adc_peripheral_init();
     
     init_ADC_ch(M1_ISEN_ADC_CH);
     init_ADC_ch(M2_ISEN_ADC_CH);
@@ -45,8 +58,6 @@ void configure_DRV8833_interface(void)
     output_compare_2_init();
     output_compare_3_init();
     output_compare_4_init();
-   
-    
 }
 
 void enable_DRV8833(void)
@@ -63,12 +74,35 @@ void enable_DRV8833(void)
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_4;
 }
 
+/*******************************************************************************
+ *                         ON-OFF MOTOR METHODS
+ ******************************************************************************/
 void open_all_motors(void)
 {
     MOTOR_LEFT_A_SET_PWM(0);
     MOTOR_LEFT_B_SET_PWM(0);
+    MOTOR_RIGHT_A_SET_PWM(0);
+    MOTOR_RIGHT_B_SET_PWM(0);
+}
+
+void brake_all_motors(void)
+{
+    MOTOR_LEFT_A_SET_PWM(100);
+    MOTOR_LEFT_B_SET_PWM(100);
+    MOTOR_RIGHT_A_SET_PWM(100);
+    MOTOR_RIGHT_B_SET_PWM(100);
+}
+
+void open_left_motor(void)
+{
     MOTOR_LEFT_A_SET_PWM(0);
-    MOTOR_LEFT_A_SET_PWM(0);
+    MOTOR_LEFT_B_SET_PWM(0);
+}
+
+void open_right_motor(void)
+{
+    MOTOR_RIGHT_A_SET_PWM(0);
+    MOTOR_RIGHT_B_SET_PWM(0);
 }
 
 void reverse_left_motor(void)
@@ -104,5 +138,90 @@ void brake_left_motor(void)
 void brake_right_motor(void)
 {
     MOTOR_RIGHT_A_SET_PWM(100);
+    MOTOR_RIGHT_B_SET_PWM(100);
+}
+
+/*******************************************************************************
+ *                       PWM MOTORS METHODS
+ ******************************************************************************/
+void forward_fast_decay_left(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_LEFT_A_SET_PWM(duty_cycle);
+    MOTOR_LEFT_B_SET_PWM(0);
+}
+
+void forward_slow_decay_left(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_LEFT_A_SET_PWM(100);
+    MOTOR_LEFT_B_SET_PWM(duty_cycle);
+}
+
+void reverse_fast_decay_left(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_LEFT_A_SET_PWM(0);
+    MOTOR_LEFT_B_SET_PWM(duty_cycle);
+}
+
+void reverse_slow_decay_left(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_LEFT_A_SET_PWM(duty_cycle);
+    MOTOR_LEFT_B_SET_PWM(100);
+}
+
+
+
+void forward_fast_decay_right(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_RIGHT_A_SET_PWM(duty_cycle);
+    MOTOR_RIGHT_B_SET_PWM(0);
+}
+
+void forward_slow_decay_right(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_RIGHT_A_SET_PWM(100);
+    MOTOR_RIGHT_B_SET_PWM(duty_cycle);
+}
+
+void reverse_fast_decay_right(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_RIGHT_A_SET_PWM(0);
+    MOTOR_RIGHT_B_SET_PWM(duty_cycle);
+}
+
+void reverse_slow_decay_right(uint8_t duty_cycle)
+{
+    duty_cycle = (duty_cycle > MAX_DUTY) ? MAX_DUTY : duty_cycle;
+    duty_cycle = (duty_cycle < MIN_DUTY) ? MIN_DUTY : duty_cycle;
+    
+    
+    MOTOR_RIGHT_A_SET_PWM(duty_cycle);
     MOTOR_RIGHT_B_SET_PWM(100);
 }
