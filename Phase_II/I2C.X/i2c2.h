@@ -135,6 +135,19 @@ uint8_t writeBit(uint8_t devAddr, uint8_t reg, uint8_t bitNum, uint8_t data);
 uint8_t i2c_ping(uint8_t* pointer);
 
 
+/** \brief Get the last value out of the I2C Rx buffer and clear the buffer overflow bit
+ * 
+ * \pre    None
+ * \param  None
+ * \return None
+ * 
+ * \author André Gradim
+ */
+void clearI2CBuffer();
+
+
+
+
 /* *****************************************************************************
  End of File
  */
