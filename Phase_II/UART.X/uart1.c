@@ -273,6 +273,10 @@ void config_UART1(uint32_t baudrate, uint8_t data_bits, unsigned char parity, ui
     /* Set Interrupt Priority and Sub-priority Levels */
     IPC6bits.U1IP = UART1_IPL & 0x07;
     IPC6bits.U1IS = UART1_IPSL & 0x03;
+    
+    /* Flush RX and TX buffer (initializes the buffers)*/
+    flush_RX_buffer();
+    flush_TX_buffer();
 #endif
 }
 
@@ -385,7 +389,7 @@ uint8_t get_uint8(uint8_t *p_uint8)
 
     *p_uint8 = ( (high - INTEGER_2_ASCII_OFFSET )* 10 + low - INTEGER_2_ASCII_OFFSET);
     
-    return (return_high | return_low);
+    return (return_high || return_low);
 }
 
 
