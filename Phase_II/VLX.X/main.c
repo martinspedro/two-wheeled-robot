@@ -83,22 +83,30 @@ int main(int argc, char** argv){
     
     int x;
     int temp = 0;
-    
+    uint16_t last = 0, last2 = 0;
+    uint16_t val = 0;
     while(1){ 
         
         iDistance = tofReadDistance(ADDRESS1);
 		if (iDistance < 4096){ // valid range?
-			put_uint16((uint16_t) iDistance);
+            val = (uint16_t) (iDistance + last+ last2)/3;
+            
+            val = (uint16_t) (iDistance + val)/2;
+            
+			put_uint16(iDistance);
             put_char('\n');
+            last = (uint16_t) iDistance;
+            last2 = last;
+            //last = (uint16_t) iDistance;
         }
             
         //delay 50 ms
-		for(x =0 ; x <10; x++){
+		/*for(x =0 ; x <5; x++){
             temp = 0;
             while( temp < 7150){
                 temp = temp + 1;
             }
-        }
+        }*/
 
     }
     return (EXIT_SUCCESS);
