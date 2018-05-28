@@ -14,8 +14,10 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
+#define CLOCKED_MODE 2
+
 //#define AUTO_SAMPLING_MODE 1
-#define MANUAL_MODE
+//#define MANUAL_MODE
 
 #define ADC_ERROR   1
 #define ADC_SUCCESS 0
