@@ -33,7 +33,7 @@
 #endif
 
 #ifdef CLOCKED_MODE
-    #define ACQUISITION_TIME_TAD      31//16
+    #define ACQUISITION_TIME_TAD      31 //16
     #define CONVERSION_CLOCK_PERIOD   124
 #endif
 
@@ -44,7 +44,6 @@
 
 #define ADC_IPL  4     //!< ADC Priority Level     
 #define ADC_ISPL 0     //!< ADC Sub-Priority Level 
-
 
 
 #define ADC_BUFFER_ADDRESS (&ADC1BUF0)      //!< ADC Buffer Start Address
@@ -315,10 +314,10 @@ uint16_t get_analog_value(void)
 
 void __ISR(_ADC_VECTOR, IPL4SOFT) ADC_ISR(void)
 {
-    LATDbits.LATD4 = 1;
-    
-    //AD1CON1bits.ASAM = 1;
+   LATDbits.LATD4 = 1;
     /*
+    //AD1CON1bits.ASAM = 1;
+    
     volatile int  *adc_buffer_p;
     adc_buffer_p = (BUFFER_FILL_STATUS == 1) ? ADC_BUFFER_ADDRESS : ADC_BUFFER_ADDRESS + 0x80;
    
@@ -330,7 +329,7 @@ void __ISR(_ADC_VECTOR, IPL4SOFT) ADC_ISR(void)
     {
         adc_value_1 += *(adc_buffer_p);
         adc_value_2 += *(adc_buffer_p + 1);
-        adc_buffer_p++;
+        adc_buffer_p += 2;
     }
     
    // put_char('q');

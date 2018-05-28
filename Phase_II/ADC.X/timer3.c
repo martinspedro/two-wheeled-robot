@@ -95,13 +95,8 @@ void config_Timer3(void)
 
 void __ISR(_TIMER_3_VECTOR, IPL2SOFT) TIMER3_ISR(void)
 {
-    LATDbits.LATD4 = 1;
+   // LATDbits.LATD4 = 1;
     CLEAR_TMR3_INT_FLAG;
-    //AD1CON1bits.ASAM = 1;		// start conversion
-    put_uint16(ADC1BUF0);
-    put_char('\n');
-    put_uint16(ADC1BUF1);
-    put_char('\n');
-    LATDbits.LATD4 = 0;
+   // LATDbits.LATD4 = 0;
 
 }

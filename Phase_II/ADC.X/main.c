@@ -28,11 +28,12 @@ void main(void)
 {
     adc_peripheral_init();
     init_ADC_ch(0);
-    init_ADC_ch(1);
-    config_input_scan(0);
-    config_input_scan(1);
+    //init_ADC_ch(1);
+    //config_input_scan(0);
+    //config_input_scan(1);
     
-    ENABLE_INPUT_SCANNING;
+    //ENABLE_INPUT_SCANNING;
+    
     config_UART1(115200, 8, 'N', 1);
     config_Timer3();
     configure_global_interrupts();
@@ -45,10 +46,6 @@ void main(void)
     TRISAbits.TRISA3 = 0;
     LATAbits.LATA3 = 1;
     
-    
-    //
-    //ENABLE_ADC;
-   // ENABLE_TIMER_3;
     
     #ifdef MANUAL_MODE
         uint16_t analog_value;
@@ -64,29 +61,26 @@ void main(void)
         
         AD1CON1bits.ASAM = 1;
     #elif CLOCKED_MODE
-        ;
-        
         ENABLE_UART1_ERROR_DETECTION_INT;
         ENABLE_UART1_TX_INT;
         ENABLE_UART1_RX_INT;
     #endif
 
     ENABLE_UART1_PHERIPHERAL;
-    ENABLE_TIMER3_INTERRUPTS;
+    //ENABLE_TIMER3_INTERRUPTS;
     Enable_Global_Interrupts();
     
     
     put_string("Initialization Completed!\n\n");
+    ENABLE_TIMER_3;
+    ENABLE_ADC;
+    
+    ENABLE_ADC_INTERRUPTS;
     
     
     AD1CON1bits.ASAM = 1;
-    //ENABLE_ADC_INTERRUPTS;
     
-    ENABLE_ADC;
-    ENABLE_TIMER_3;
-    //AD1CON1bits.SAMP = 1;
-    //delay();
-    //AD1CON1bits.SAMP = 0;
+
     
     
     
