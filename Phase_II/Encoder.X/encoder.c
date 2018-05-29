@@ -104,10 +104,19 @@ void configure_external_interrupts(void)
 
 void init_encoder_state(void)
 {
+    DISABLE_ENCODERS;
     CS_left  = ( (ENCODER_LEFT_A  << 1) | ENCODER_LEFT_B  );
     CS_right = ( (ENCODER_RIGHT_A << 1) | ENCODER_RIGHT_B );           
+    ENABLE_ENCODERS;
 }
 
+void reset_enc_pulse_cnt(void)
+{
+    DISABLE_ENCODERS;
+    pulse_count_L = 0;
+    pulse_count_R = 0;
+    ENABLE_ENCODERS;
+}
 /** \brief ISR for Encoder A of Left Motor 
  * 
  * \pre    Global and External Interrupts must be configured and enabled
