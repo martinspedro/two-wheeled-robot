@@ -12,9 +12,19 @@
 
 #include <xc.h>
 
+#include "../ADC.X/adc.h"
+#include "../PWM.X/timer2.h"
+#include "../PWM.X/pwm1.h"
+#include "../PWM.X/pwm2.h"
+#include "../PWM.X/pwm3.h"
+#include "../PWM.X/pwm4.h"
+
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
+#define DRV8833_ERROR   0
+#define DRV8833_SUCCESS 1
+
 #define nSLEEP LATDbits.LATD5       //!< DRV8833 Sleep pin (active Low, input)
 #define nFAULT PORTDbits.RD6        //!< DRV8833 Fault pin (active Low, output)
 
@@ -24,11 +34,10 @@
 #define ENABLE_DRV8833  {nSLEEP = 1;}   //!< Enable DRV8833 module (drive nSleep pin high)
 #define DISABLE_DRV8833 {nSLEEP = 0;}   //!< Disable DRV8833 module (drive nSleep pin low)
 
-
 #define MIN_DUTY 0          //!< Mininum duty-cycle to be applied to the motors
 #define MAX_DUTY 100        //!< Maximum duty-cycle to be applied to the motors
 
-
+#define DRV8833_ERROR_MESSAGE "DRV8833 ERROR!\n"
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
@@ -56,6 +65,17 @@ void configure_DRV8833_interface(void);
  * \author Pedro Martins
  */
 void enable_DRV8833(void);
+
+/** \brief DRV8833 Fault Condition Verification
+ * 
+ * \pre    DRV8833 is configured and enabled
+ * \param  None.
+ * \return DRV8833_SUCCESS if no fault condition has occurred
+ * \return DRV8833_ERROR if any fault condition has occurred
+ * 
+ * \author Pedro Martins
+ */
+uint8_t DRV8833_fault_condition(void);
 
 /** \brief Opens all motors using ON-OFF drive
  * 
