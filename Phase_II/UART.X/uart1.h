@@ -15,7 +15,7 @@
 /*******************************************************************************
  *                          OPERATION MODE
  ******************************************************************************/
-//#define USE_INTERRUPTS      //!< If defined, UART 1 pheripheral operates using interruptions and a circular SW buffer
+#define USE_INTERRUPTS      //!< If defined, UART 1 pheripheral operates using interruptions and a circular SW buffer
 
 
 /*******************************************************************************
