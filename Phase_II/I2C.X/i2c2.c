@@ -19,7 +19,7 @@
 
 
 
-#define I2C1_EI IEC1bits.I2C2MIE = 1;
+#define I2C2_EI IEC1bits.I2C2MIE = 1;
 #define I2C2_DI IEC1bits.I2C2MIE = 0;
 
 #define I2C2_START      I2C2CONbits.SEN         // I2C START control bit.
@@ -189,43 +189,6 @@ void masterReceive(uint8_t* buffer,uint8_t bytes_to_read);
 // Section: Interface Functions                                                */
 //* ************************************************************************** */
 
-
-
-#ifdef INTERRUPTS_ON
-uint8_t insert_i2c_buffer(I2C_MESSAGE_BLOCK* pBuffer){
-    if(i2c_buffer.count < I2C_BUFFER_SIZE){
-        i2c_buffer.buffer[i2c_buffer.tail] = *pBuffer;
-        
-        (i2c_buffer.tail == I2C_BUFFER_SIZE)?(i2c_buffer.tail = 0):(i2c_buffer.tail++);
-
-        I2C2_DI
-        i2c_buffer.count++;
-        I2C1_EI
-                
-        return 0;
-    }
-    
-    return 1;
-}
-
-uint8_t pop_i2c_buffer(I2C_MESSAGE_BLOCK* pBuffer){
-    if(i2c_buffer.count > 0){
-        pBuffer = &i2c_buffer.buffer[i2c_buffer.head];
-    
-        (i2c_buffer.head == I2C_BUFFER_SIZE)?(i2c_buffer.head =0):(i2c_buffer.head++);
-
-        I2C2_DI
-        i2c_buffer.count--;
-        I2C1_EI
-        return 0;
-    }
-
-    return 1;
-}
-
-#endif
-
-
 void openI2C2( ){
     I2C2CONbits.ON = 0;         // make sure the module is disabled
     
@@ -233,21 +196,7 @@ void openI2C2( ){
     
     I2C2BRG = 0x02C;            //set the brg for 400kHz
     
-    #ifdef INTERRUPTS_ON
-    
-    i2c_state = S_MASTER_IDLE;
-
-    
-    i2c_buffer.count = 0;
-    i2c_buffer.head = i2c_buffer.buffer[0];
-    i2c_buffer.tail = i2c_buffer.buffer[0];
-
-     
-    IEC1bits.I2C2MIE = 1;
-    IEC1bits.I2C2SIE = 0;
-    IEC1bits.I2C2BIE = 0;
-      
-    #endif
+   
 
     I2C2CONbits.ON = 1;         // enable i2c2 module
 }
@@ -270,9 +219,7 @@ int startI2C2(){
      
     I2C2CONbits.SEN = 1; //activate start condition bit
     
-    #ifndef INTERRUPTS_ON
-        while(I2C2CONbits.SEN == 1);
-    #endif
+    while(I2C2CONbits.SEN == 1);
     
     if(I2C2STATbits.BCL == 1){
         return 1;
@@ -297,9 +244,7 @@ int stopI2C2(){
         i2c_state = S_MASTER_IDLE;
     #endif
     
-    #ifndef INTERRUPTS_ON
-        while(I2C2CONbits.PEN == 1);
-    #endif
+    while(I2C2CONbits.PEN == 1);
     
     if(I2C2STATbits.BCL == 1){
         return 1;
@@ -321,9 +266,7 @@ int restartI2C2(){
      
     I2C2CONbits.RSEN = 1; //activate restart condition bit
     
-    #ifndef INTERRUPTS_ON
         while(I2C2CONbits.RSEN == 1);
-    #endif
     
     if(I2C2STATbits.BCL == 1){
         return 1;
@@ -347,10 +290,8 @@ int ackI2C2(int ackType){
     if( idleI2C2() ){        
         I2C2CONbits.ACKEN = 1;
               
-        #ifndef INTERRUPTS_ON
             while(I2C2CONbits.ACKEN == 1);
-        #endif
-    
+        
         return 0;
     }else{
         return 1;
@@ -381,9 +322,8 @@ int dataReadyI2C2(void){
 
 
 uint8_t masterReadI2C2(void){
-    #ifndef INTERRUPTS_ON
     while(idleI2C2() == 0 ); 
-    #endif
+    
     //master isn't disable (5 least significant bits not 0)
     
     I2C2CONbits.RCEN = 1;
@@ -391,11 +331,11 @@ uint8_t masterReadI2C2(void){
     putchar('n');
     #endif
 
-    #ifndef INTERRUPTS_ON
+    
 
     while(I2C2STATbits.RBF == 0); //wait until reception is done
     
-    #endif
+    
 
     //Next it's needed to send acknowledge sequence (|ACK or NACK))
     uint8_t aux =I2C2RCV;
@@ -404,14 +344,14 @@ uint8_t masterReadI2C2(void){
 }
 
 uint8_t masterWriteI2C2(uint8_t data_out){
-    #ifndef INTERRUPTS_ON
+    
     while(!idleI2C2());
-    #endif
+    
     I2C2TRN = data_out;
     
-    #ifndef INTERRUPTS_ON
+   
     while(I2C2STATbits.TRSTAT == 1);
-    #endif
+    
     
     
 
@@ -617,263 +557,6 @@ void clearI2CBuffer(){
 }
 
 
-
-
-#ifdef INTERRUPTS_ON
-void __ISR(_I2C2_VECTOR, IPL5SOFT) I2C2_ISR(void){
-    
-    if(IFS1bits.I2C2BIF == 1){ //Interrupt triggered by bus collision
-        
-        
-    }
-    
-    
-    if(IFS1bits.I2C2MIF == 1){ // Interrupt triggered by master event
-        switch(i2c_state){
-            case S_MASTER_IDLE:
-                if(i2c_buffer.count > 0){
-                    if(pop_i2c_buffer(&i2c_message) == 1){
-                        while(1);
-                    }
-
-                    I2C2_START = 1; 
-                    i2c_state = S_MASTER_SEND_ADDR;
-                    
-                }
-            break;
-
-            case S_MASTER_SEND_ADDR:
-
-                /* Start has been sent, send the address byte */
-
-                // extract the information for this message
-                uint8_t i2c_address = i2c_message.address;
-
-                //No data to send, it's a read request
-                if(i2c_message.length == 0 || i2c_message.pbuffer == NULL){
-                    i2c_address = i2c_address << 1 | 1;
-                }else{
-                    i2c_address = i2c_address << 1 | 0;
-                }
-
-                // Transmit the address
-                masterWriteI2C2(i2c_address);
-
-                if(i2c_address & 0x01){   //READ
-                    // Next state is to wait for address to be acked
-                    i2c1_state = S_MASTER_ACK_ADDR;
-                }
-                else{   //WRITE
-                    // Next state is transmit
-                    i2c1_state = S_MASTER_SEND_DATA;
-                }
-            
-            break;
-
-            case S_MASTER_SEND_DATA:
-
-                // Make sure the previous byte was acknowledged
-                if(I2C_ACK_BIT == 1){
-                    // Transmission was not acknowledged
-                   
-                    // Reset the Ack flag
-                    I2C_ACK_BIT= 0;
-
-                    // Send a stop flag and go back to idle
-                    stopI2C2();
-
-                }else{
-                    // Did we send them all ?
-                    if(i2c_message.length-- == 0U){
-                        // yup sent them all!
-
-                        // update the trb pointer
-                        p_i2c1_trb_current++;
-
-                        // are we done with this string of requests?
-                        if(--i2c1_trb_count == 0){
-                            I2C1_Stop(I2C1_MESSAGE_COMPLETE);
-                        }else{
-                            // no!, there are more TRB to be sent.
-                            //I2C1_START_CONDITION_ENABLE_BIT = 1;
-
-                            // In some cases, the slave may require
-                            // a restart instead of a start. So use this one
-                            // instead.
-                            I2C1_REPEAT_START_CONDITION_ENABLE_BIT = 1;
-
-                            // start the i2c request
-                            i2c1_state = S_MASTER_SEND_ADDR;
-
-                        }
-                    }else{
-                        // Grab the next data to transmit
-                        masterWriteI2C2(i2c_message.pbuffer++);
-                    }
-                }
-            break;
-           
-
-        case S_MASTER_RESTART:
-
-            /* check for pending i2c Request */
-
-            // ... trigger a REPEATED START
-            I2C1_REPEAT_START_CONDITION_ENABLE_BIT = 1;
-
-            // start the i2c request
-            i2c1_state = S_MASTER_SEND_ADDR;
-
-            break;
-
-        case S_MASTER_SEND_ADDR_10BIT_LSB:
-
-            if(I2C1_ACKNOWLEDGE_STATUS_BIT)
-            {
-                i2c1_object.i2cErrors++;
-                I2C1_Stop(I2C1_MESSAGE_ADDRESS_NO_ACK);
-            }
-            else
-            {
-                // Remove bit 0 as R/W is never sent here
-                I2C1_TRANSMIT_REG = (i2c_address >> 1) & 0x00FF;
-
-                // determine the next state, check R/W
-                if(i2c_address & 0x01)
-                {
-                    // if this is a read we must repeat start
-                    // the bus to perform a read
-                    i2c1_state = S_MASTER_10BIT_RESTART;
-                }
-                else
-                {
-                    // this is a write continue writing data
-                    i2c1_state = S_MASTER_SEND_DATA;
-                }
-            }
-
-            break;
-
-        case S_MASTER_10BIT_RESTART:
-
-            if(I2C1_ACKNOWLEDGE_STATUS_BIT)
-            {
-                i2c1_object.i2cErrors++;
-                I2C1_Stop(I2C1_MESSAGE_ADDRESS_NO_ACK);
-            }
-            else
-            {
-                // ACK Status is good
-                // restart the bus
-                I2C1_REPEAT_START_CONDITION_ENABLE_BIT = 1;
-
-                // fudge the address so S_MASTER_SEND_ADDR works correctly
-                // we only do this on a 10-bit address resend
-                i2c_address = 0x00F0 | ((i2c_address >> 8) & 0x0006);
-
-                // set the R/W flag
-                i2c_address |= 0x0001;
-
-                // set the address restart flag so we do not change the address
-                i2c_10bit_address_restart = 1;
-
-                // Resend the address as a read
-                i2c1_state = S_MASTER_SEND_ADDR;
-            }
-
-            break;
-
-        
-
-        
-
-        case S_MASTER_ACK_ADDR:
-
-            /* Make sure the previous byte was acknowledged */
-            if(I2C1_ACKNOWLEDGE_STATUS_BIT)
-            {
-
-                // Transmission was not acknowledged
-                i2c1_object.i2cErrors++;
-
-                // Send a stop flag and go back to idle
-                I2C1_Stop(I2C1_MESSAGE_ADDRESS_NO_ACK);
-
-                // Reset the Ack flag
-                I2C1_ACKNOWLEDGE_STATUS_BIT = 0;
-            }
-            else
-            {
-                I2C1_RECEIVE_ENABLE_BIT = 1;
-                i2c1_state = S_MASTER_ACK_RCV_DATA;
-            }
-            break;
-
-        case S_MASTER_RCV_DATA:
-
-            /* Acknowledge is completed.  Time for more data */
-
-            // Next thing is to ack the data
-            i2c1_state = S_MASTER_ACK_RCV_DATA;
-
-            // Set up to receive a byte of data
-            I2C1_RECEIVE_ENABLE_BIT = 1;
-
-            break;
-
-        case S_MASTER_ACK_RCV_DATA:
-
-            // Grab the byte of data received and acknowledge it
-            *pi2c_buf_ptr++ = I2C1_RECEIVE_REG;
-
-            // Check if we received them all?
-            if(--i2c_bytes_left)
-            {
-
-                /* No, there's more to receive */
-
-                // No, bit 7 is clear.  Data is ok
-                // Set the flag to acknowledge the data
-                I2C1_ACKNOWLEDGE_DATA_BIT = 0;
-
-                // Wait for the acknowledge to complete, then get more
-                i2c1_state = S_MASTER_RCV_DATA;
-            }
-            else
-            {
-
-                // Yes, it's the last byte.  Don't ack it
-                // Flag that we will nak the data
-                I2C1_ACKNOWLEDGE_DATA_BIT = 1;
-
-                I2C1_FunctionComplete();
-            }
-
-            // Initiate the acknowledge
-            I2C1_ACKNOWLEDGE_ENABLE_BIT = 1;
-            break;
-
-        case S_MASTER_RCV_STOP:                
-        case S_MASTER_SEND_STOP:
-
-            // Send the stop flag
-            I2C1_Stop(I2C1_MESSAGE_COMPLETE);
-            break;
-
-        default:
-
-            // This case should not happen, if it does then
-            // terminate the transfer
-            i2c1_object.i2cErrors++;
-            I2C1_Stop(I2C1_LOST_STATE);
-            break; 
-
-        }
-    }
-    
-    
-}
-#endif
 
 
 

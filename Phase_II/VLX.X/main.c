@@ -16,20 +16,8 @@
 #include "../interrupts.h"
 
 //to test address changes uncomment
-#define TEST_NEW_ADDRESS
+//#define TEST_NEW_ADDRESS
 
-#define DEFAULT_ADDRESS 0x29
-
-#define NEW_ADDRESS 0x30
-
-
-#ifndef TEST_NEW_ADDRESS
-#define ADDRESS1 DEFAULT_ADDRESS
-#endif
-
-#ifdef TEST_NEW_ADDRESS
-#define ADDRESS1 NEW_ADDRESS
-#endif
 
 
 
@@ -43,19 +31,18 @@ int main(int argc, char** argv){
     ENABLE_UART1_ERROR_DETECTION_INT;
     ENABLE_UART1_TX_INT;
     ENABLE_UART1_RX_INT;
-    
+    openI2C2();
     configure_global_interrupts();
     Enable_Global_Interrupts();
-    
-    openI2C2();
-    
+        
+    /*
     int i;
     int iDistance;
     int model, revision;
 	
     uint8_t values[10];
     uint8_t count = i2c_ping(values);
-    
+    //uint8_t count = 0;
     uint8_t index = 0;
     
     put_string("Addresses on the line (before): \n");
@@ -72,9 +59,9 @@ int main(int argc, char** argv){
     put_string("Changing address:\n ");
     setAddress(DEFAULT_ADDRESS,NEW_ADDRESS);
     #endif
+    */
     
-    
-	i = initSensor(NEW_ADDRESS, 1); // set long range mode (up to 2m)
+	/*int i = initSensor(0x30, 1); // set long range mode (up to 2m)
     
 	if (i !=1 ){
         put_string("ERROR in init: ");
@@ -98,7 +85,7 @@ int main(int argc, char** argv){
         put_char('\n');
     }
     
-    while(1);
+    while(1);*/
     /*
 	i = tofGetModel(ADDRESS1, &model, &revision);
     
@@ -109,7 +96,7 @@ int main(int argc, char** argv){
     put_string("Revision ID: ");
     put_uint16((uint16_t) revision);
 	put_char('\n');*/
-    
+    /*
     char p;
     get_char(&p);
     
@@ -117,12 +104,37 @@ int main(int argc, char** argv){
     int temp = 0;
     uint16_t last = 0, last2 = 0;
     uint16_t val = 0;
+    */
+    put_string("Init all sensors\n");
+    /*_TRISD8 = 0;
+    _LATD8 = 0;
+    setAddress()*/
     
+    //initSensor(0x29,1);
+    initAllSensors();
+    put_string("Done!\n");
+    uint16_t d_left, d_center, d_right;
+            
     
-    while(1);
     while(1){ 
         
-        iDistance = tofReadDistance(ADDRESS1);
+        //d_center = tofReadDistance(0x30);
+        //d_center = tofReadDistance(0x29);
+        //d_center = tofReadDistance(0x34);
+        tofReadDistanceAllSensors(&d_left, &d_center, & d_right);
+        
+        
+        put_uint16(d_left);
+        
+        put_char('\t');
+        put_uint16(d_center);
+        
+        put_char('\t');
+        put_uint16(d_right);
+        put_char('\n');
+        
+        
+        /*iDistance = tofReadDistance(ADDRESS1);
 		if (iDistance < 4096){ // valid range?
             val = (uint16_t) (iDistance + last+ last2)/3;
             
@@ -133,7 +145,7 @@ int main(int argc, char** argv){
             last = (uint16_t) iDistance;
             last2 = last;
             //last = (uint16_t) iDistance;
-        }
+        }*/
             
         //delay 50 ms
 		/*for(x =0 ; x <5; x++){
