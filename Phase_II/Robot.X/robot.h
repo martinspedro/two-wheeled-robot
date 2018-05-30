@@ -49,9 +49,12 @@
 #define ENABLE_PID  ENABLE_TIMER4_INTERRUPTS
 #define DISABLE_PID DISABLE_TIMER4_INTERRUPTS
 
-#define MLEFT_SETPOINT_SPEED  30    // %
-#define MRIGHT_SETPOINT_SPEED 30    // %
+#define MLEFT_SETPOINT_SPEED  35      // %
+#define MRIGHT_SETPOINT_SPEED 35   // %
 
+#define MAX_LEFT_DISTANCE 50 // mm
+#define MAX_CENTER_DISTANCE 75 // mm
+#define MAX_RIGHT_DISTANCE 50 // mm
 
 // flag to distinguish between move and rotate
 uint8_t is_rotation = 0;

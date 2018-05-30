@@ -17,8 +17,8 @@
 #define INTEGRAL_CLIP	70				// Cliping value of the Integral component
 
 
-const signed int KP_num=5, KP_den=1;	// Propotional constant
-const signed int KI_num=5, KI_den=2;	// Integral constant
+const signed int KP_num=1, KP_den=1;	// Propotional constant
+const signed int KI_num=0, KI_den=2;	// Integral constant
 
 
 
@@ -30,7 +30,7 @@ uint8_t set_movement_direction(uint8_t id)
     switch(id)
     {
         case ID_MOVE_FORWARD:
-            move_forward(30, 30);
+            move_forward(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
             break;
         case ID_MOVE_BACKWARDS:
             move_backwards(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
@@ -49,10 +49,10 @@ uint8_t set_movement_direction(uint8_t id)
 }
 
 
-void __ISR(_TIMER_4_VECTOR, IPL7SRS) PID_ISR(void)
+void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
 {
+    LED3 = 1;
    // LATDbits.LATD4 = 1;
-    
     static int error, prop = 0;
 	static int integralMLeft, integralMRight = 0;
 	static int cmdMLeft, cmdMRight;
@@ -81,6 +81,15 @@ void __ISR(_TIMER_4_VECTOR, IPL7SRS) PID_ISR(void)
 	cmdMRight = cmdMRight > 100 ? 100 : cmdMRight;
 	cmdMRight = cmdMRight < -100 ? -100 : cmdMRight;
 
+    /*
+    if(aux == 1)
+    {
+        put_uint16(puls);
+        put_char('\n');
+        put_uint16(integralMRight);
+        aux = 0;
+    }
+    */
     if(cmdMLeft > 0)
     {
         forward_fast_decay_left(cmdMLeft);
@@ -98,11 +107,9 @@ void __ISR(_TIMER_4_VECTOR, IPL7SRS) PID_ISR(void)
     {
         reverse_fast_decay_right(-cmdMRight);
     }
-	//actuateMotors(cmdMLeft, cmdMRight);	// Actuate directly on motors
-										// (do not use any filter)
+	
     CLEAR_TMR4_INT_FLAG;
    // LATDbits.LATD4 = 0;
-
 }
 
 void init_IO(void)

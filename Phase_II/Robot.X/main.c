@@ -30,6 +30,10 @@ enum State {                // State Machine
 unsigned char received_byte_id = 0;
 unsigned char received_byte_arg = 0;
 
+uint16_t distance_left = 0;
+uint16_t distance_center = 0;
+uint16_t distance_right = 0;
+
 // id of the operation being executed
 unsigned char current_byte_id = 0;
 
@@ -47,6 +51,8 @@ void main(void)
             
     config_Timer4();
     
+    openI2C2();
+    
     configure_global_interrupts();
     configure_external_interrupts();
     
@@ -60,6 +66,7 @@ void main(void)
     ENABLE_ENCODERS;
     Enable_Global_Interrupts();
     
+    initAllSensors();
     
     /* START-UP SEQUENCE */
     put_string("Awaiting handshake... ");
@@ -82,6 +89,7 @@ void main(void)
         {
             ERROR_LED = 1;
             put_string(DRV8833_ERROR_MESSAGE);
+            CS = STOPPING;
         }
         else
         {
@@ -95,10 +103,6 @@ void main(void)
             if( (received_byte_id == ID_EMERGENCY_STOP) )// && (CS != STOPPING) )
             {
                 put_string("EMERGENCY STOP\n");
-                
-                DISABLE_PID;
-                brake_all_motors();
-                
                 CS = STOPPING;
             }
             
@@ -148,17 +152,42 @@ void main(void)
                 //put_char( current_byte_id);
                 CS = RUNNING;
                 
-                //ENABLE_PID;
+               // ENABLE_PID;
             break;
             
             case RUNNING:
                 //put_string("RUNNING\n");
                 
-                CS = RUNNING;
+                tofReadDistanceAllSensors(&distance_left, &distance_center, &distance_right);
+                put_uint16(distance_left); 
+                put_string(" - ");
+                put_uint16(distance_center); 
+                put_string(" - ");
+                put_uint16(distance_right); 
+                put_char('\n');
+                
+                if (distance_center <= MAX_CENTER_DISTANCE)
+                {
+                    put_string("OBSTACLE DETECTED! CENTER\n");
+                    OBSTACLE_DETECTED_LED = 1;        
+                    CS = STOPPING;
+                } else if(distance_left <= MAX_LEFT_DISTANCE) {
+                    put_string("OBSTACLE DETECTED! LEFT\n");
+                    OBSTACLE_DETECTED_LED = 1;        
+                    CS = STOPPING;
+                } else if(distance_right <= MAX_RIGHT_DISTANCE) {
+                    put_string("OBSTACLE DETECTED! RIGHT\n");
+                    OBSTACLE_DETECTED_LED = 1;        
+                    CS = STOPPING;
+                } else {   
+                    CS = RUNNING;
+                }
+                
+                
                 break;
             case STOPPING:
-                //put_string("STOPPING\n");
-                //DISABLE_PID;
+                put_string("STOPPING\n");
+                DISABLE_PID;
                 brake_all_motors();
                 CS = WAIT;
             break;
