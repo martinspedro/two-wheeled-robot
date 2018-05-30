@@ -32,6 +32,17 @@
 #define ENCODER_SUCCESS 0   //!< Return value in case of Success
 
 
+// ***************************************************************************
+// PHYSICAL CONSTRAINTS 
+#define WHEEL_DIAMETER          60  // mm
+#define WHEEL_RADIO             WHEEL_DIAMETER/2    // mm
+#define WHEEL_PERIMETER         189 // mm
+#define WHEEL_2_WHEEL_DIST      158 // mm
+
+#define MOTOR_GEAR_RATIO        75
+#define COUNTS_PER_REV          12
+#define QUADRATURE_CPR          4*COUNTS_PER_REV
+
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
