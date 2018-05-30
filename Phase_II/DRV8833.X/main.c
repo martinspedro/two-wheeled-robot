@@ -16,8 +16,8 @@ void main(void)
     configure_DRV8833_interface();
     enable_DRV8833();
     
-    forward_fast_decay_left(25);
-    forward_fast_decay_right(30);
+    forward_fast_decay_left(10);
+    forward_fast_decay_right(10);
     
    
     while(1);

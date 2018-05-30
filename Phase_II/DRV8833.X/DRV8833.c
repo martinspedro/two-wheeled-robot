@@ -16,9 +16,9 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM1_duty_cycle(duty_cycle)
-#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
-#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM3_duty_cycle(duty_cycle)
+#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
+#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM3_duty_cycle(duty_cycle)
+#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM5_duty_cycle(duty_cycle)
 #define MOTOR_RIGHT_B_SET_PWM(duty_cycle) set_PWM4_duty_cycle(duty_cycle)
 
 #define nSLEEP_TRIS TRISDbits.TRISD5
@@ -48,10 +48,10 @@ void configure_DRV8833_interface(void)
     // Configure PWM
     config_Timer2();
     
-    output_compare_1_init();
     output_compare_2_init();
     output_compare_3_init();
     output_compare_4_init();
+    output_compare_5_init();
     
     // Set all motor to open state
     open_all_motors();
@@ -65,10 +65,10 @@ void enable_DRV8833(void)
             
     ENABLE_TIMER_2;
             
-    ENABLE_OUTPUT_COMPARE_PERIPHERAL_1;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_2;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_3;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_4;
+    ENABLE_OUTPUT_COMPARE_PERIPHERAL_5;
 }
 
 uint8_t DRV8833_fault_condition(void)

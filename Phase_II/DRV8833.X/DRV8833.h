@@ -14,10 +14,10 @@
 
 #include "../ADC.X/adc.h"
 #include "../PWM.X/timer2.h"
-#include "../PWM.X/pwm1.h"
 #include "../PWM.X/pwm2.h"
 #include "../PWM.X/pwm3.h"
 #include "../PWM.X/pwm4.h"
+#include "../PWM.X/pwm5.h"
 
 /*******************************************************************************
  *                          MACROS DEFINITION
