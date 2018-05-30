@@ -38,6 +38,8 @@
 #define MAX_DUTY 100        //!< Maximum duty-cycle to be applied to the motors
 
 #define DRV8833_ERROR_MESSAGE "DRV8833 ERROR!\n"
+
+
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/

@@ -38,4 +38,9 @@ int initSensor(uint8_t dev_add,int bLongRangeMode);
 
 void setAddress(uint8_t dev_add,uint8_t new_addr);
 
+
+void initAllSensors();
+
+int tofReadDistanceAllSensors(uint16_t* dev_left, uint16_t* dev_center, uint16_t* dev_right);
+
 #endif // _TOFLIB_H

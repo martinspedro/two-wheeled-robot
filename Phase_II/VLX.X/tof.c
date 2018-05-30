@@ -912,7 +912,7 @@ void initAllSensors(){
     setAddress(DEFAULT_ADDRESS,CENTER);
     put_char('A');
     
-    _LATD8 = 1;
+    _LATD9 = 1;
     
     int i;
     
@@ -927,7 +927,7 @@ void initAllSensors(){
     
     setAddress(DEFAULT_ADDRESS,LEFT);
      put_char('C');
-    _LATD9 = 1;
+    _LATD8 = 1;
     
     i = initSensor(LEFT, 1); // set long range mode (up to 2m)
      put_char('D');
