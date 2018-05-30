@@ -256,5 +256,14 @@ void reverse_fast_decay_right(uint8_t duty_cycle);
  * \author Pedro Martins
  */
 void reverse_slow_decay_right(uint8_t duty_cycle);
+
+
+void move_forward(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+void move_backwards(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+void rotate_clockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+void rotate_counterclockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 #endif	/* MOTORS_H */
 

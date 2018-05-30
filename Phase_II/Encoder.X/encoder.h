@@ -10,7 +10,7 @@
 #define	ENCODER_H
 
 #include <xc.h>
-
+//#define  DEBUG_WITH_UART
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
@@ -42,6 +42,10 @@
 #define MOTOR_GEAR_RATIO        75
 #define COUNTS_PER_REV          12
 #define QUADRATURE_CPR          4*COUNTS_PER_REV
+
+
+extern volatile int16_t pulse_count_L;
+extern volatile int16_t pulse_count_R;
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION

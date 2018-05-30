@@ -53,6 +53,9 @@ void configure_DRV8833_interface(void)
     output_compare_4_init();
     output_compare_5_init();
     
+    // Weak PULL UP on nFault
+    CNPUEbits.CNPUE15 = 1;  
+    
     // Set all motor to open state
     open_all_motors();
 }
@@ -261,8 +264,8 @@ void rotate_clockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 
 void rotate_counterclockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
-    forward_fast_decay_left(duty_cycle_left);
-    reverse_fast_decay_right(duty_cycle_right);
+    reverse_fast_decay_left(duty_cycle_left);
+    forward_fast_decay_right(duty_cycle_right);
 }
 
 // </editor-fold>

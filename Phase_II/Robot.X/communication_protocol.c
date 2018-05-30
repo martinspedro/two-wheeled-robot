@@ -26,4 +26,4 @@ void manage_initial_handshake()
     
     //After the correct ID has been received, send the confirmation
     put_char(ID_LOCOMOTION_INIT_OK); 
-}
+}   
