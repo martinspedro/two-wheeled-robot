@@ -16,7 +16,7 @@
 #include "../interrupts.h"
 
 //to test address changes uncomment
-//#define TEST_NEW_ADDRESS
+#define TEST_NEW_ADDRESS
 
 #define DEFAULT_ADDRESS 0x29
 
@@ -53,13 +53,28 @@ int main(int argc, char** argv){
     int iDistance;
     int model, revision;
 	
-    put_string("Initializing VLX");
+    uint8_t values[10];
+    uint8_t count = i2c_ping(values);
+    
+    uint8_t index = 0;
+    
+    put_string("Addresses on the line (before): \n");
+    for(index = 0; index < count; index++){
+        put_uint8(index);
+        put_string(" -> ");
+        put_uint8(values[index]);
+        put_char('\n');
+    }
+    
+    
+    put_string("Initializing VLX \n");
     #ifdef TEST_NEW_ADDRESS
+    put_string("Changing address:\n ");
     setAddress(DEFAULT_ADDRESS,NEW_ADDRESS);
     #endif
-
-
-	i = initSensor(ADDRESS1, 1); // set long range mode (up to 2m)
+    
+    
+	i = initSensor(NEW_ADDRESS, 1); // set long range mode (up to 2m)
     
 	if (i !=1 ){
         put_string("ERROR in init: ");
@@ -68,6 +83,23 @@ int main(int argc, char** argv){
 	}
     put_string("\nVLX init done!\n");
     
+    
+    
+    uint8_t new_values[10];
+    count = i2c_ping(new_values);
+    
+    index = 0;
+    
+    put_string("Addresses on the line (after): \n");
+    for(index = 0; index < count; index++){
+        put_uint8(index);
+        put_string(" -> ");
+        put_uint8(new_values[index]);
+        put_char('\n');
+    }
+    
+    while(1);
+    /*
 	i = tofGetModel(ADDRESS1, &model, &revision);
     
 	put_string("Model ID: ");
@@ -76,7 +108,7 @@ int main(int argc, char** argv){
     
     put_string("Revision ID: ");
     put_uint16((uint16_t) revision);
-	put_char('\n');
+	put_char('\n');*/
     
     char p;
     get_char(&p);
@@ -85,6 +117,9 @@ int main(int argc, char** argv){
     int temp = 0;
     uint16_t last = 0, last2 = 0;
     uint16_t val = 0;
+    
+    
+    while(1);
     while(1){ 
         
         iDistance = tofReadDistance(ADDRESS1);

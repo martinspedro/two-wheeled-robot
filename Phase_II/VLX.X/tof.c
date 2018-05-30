@@ -747,7 +747,7 @@ int initSensor(uint8_t dev_add,int bLongRangeMode)
 
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0x02);
 
-  if (!performSingleRefCalibration(dev_add,0x00)) { return 0; }
+  if (!performSingleRefCalibration(dev_add,0x00)) { return 2; }
 
   writeReg(dev_add,SYSTEM_SEQUENCE_CONFIG, 0xe8);
   return 1;
