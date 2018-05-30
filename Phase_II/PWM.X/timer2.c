@@ -32,7 +32,7 @@
 
 void config_Timer2(void)
 {
-    ENABLE_TIMER_2;
+    DISABLE_TIMER_2;
     
     /* Enable Timer2 module operation when CPU enters IDLE mode
      * 

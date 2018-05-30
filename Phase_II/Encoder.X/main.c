@@ -10,7 +10,7 @@
 #include "../global.h"
 #include "../interrupts.h"
 #include "encoder.h"
-
+#include "../UART.X/uart1.h"
 #include <xc.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,10 +22,15 @@ void main(void) {
     TRISBbits.TRISB5 = 0;
     TRISBbits.TRISB6 = 0;
     
+    config_UART1(115200, 8, 'N', 1);
+
     configure_global_interrupts();
     configure_external_interrupts();
     
     Enable_Global_Interrupts();
+    ENABLE_UART1_PHERIPHERAL;
+    ENABLE_UART1_ALL_INTERRUPTS;
+    
     ENABLE_EXT_INT1;
     ENABLE_EXT_INT2;
     ENABLE_EXT_INT3;

@@ -13,23 +13,30 @@
 #include "../UART.X/uart1.h"
 #include "../interrupts.h"
 #include "adc.h"
-#include "../interrupts.h"
+#include "timer3.h"
 
 void delay(void){
     int i = 0;
-    for( i = 0 ; i < 65000; i++)
+    for( i = 0 ; i < 320000; i++)
     {
-        Nop();
-        Nop();
-        Nop();
-        Nop();
         Nop();
     }
 }
 
 
-int main(int argc, char** argv) {
-    uint16_t analog_value;
+void main(void) 
+{
+    adc_peripheral_init();
+    init_ADC_ch(0);
+    //init_ADC_ch(1);
+    //config_input_scan(0);
+    //config_input_scan(1);
+    
+    //ENABLE_INPUT_SCANNING;
+    
+    config_UART1(115200, 8, 'N', 1);
+    config_Timer3();
+    configure_global_interrupts();
     
     TRISDbits.TRISD4 = 0;
     TRISDbits.TRISD5 = 0;
@@ -39,31 +46,49 @@ int main(int argc, char** argv) {
     TRISAbits.TRISA3 = 0;
     LATAbits.LATA3 = 1;
     
-#ifdef MANUAL_MODE
+    
+    #ifdef MANUAL_MODE
+        uint16_t analog_value;
         uint8_t num;
-    config_UART1(115200, 8, 'N', 1);
-    ENABLE_UART1_PHERIPHERAL;
-#endif
-    
-    adc_peripheral_init();
-    init_ADC_ch(0);
-    config_input_scan(0);
-    
-    
-    #ifdef AUTO_SAMPLING_MODE
-        configure_global_interrupts();
+    #elif AUTO_SAMPLING_MODE
         ENABLE_ADC_INTERRUPTS;
+        
+        ENABLE_UART1_ERROR_DETECTION_INT;
+        ENABLE_UART1_TX_INT;
+        ENABLE_UART1_RX_INT;
+        
         Enable_Global_Interrupts();
+        
+        AD1CON1bits.ASAM = 1;
+    #elif CLOCKED_MODE
+        ENABLE_UART1_ERROR_DETECTION_INT;
+        ENABLE_UART1_TX_INT;
+        ENABLE_UART1_RX_INT;
     #endif
+
+    ENABLE_UART1_PHERIPHERAL;
+    //ENABLE_TIMER3_INTERRUPTS;
+    Enable_Global_Interrupts();
     
+    
+    put_string("Initialization Completed!\n\n");
+    ENABLE_TIMER_3;
     ENABLE_ADC;
     
+    ENABLE_ADC_INTERRUPTS;
+    
+    
+    AD1CON1bits.ASAM = 1;
+    
+
+    
+    
+    
+    
+    //AD1CON1bits.ASAM = 1;		// start conversion
+    
+    
     while(1){
-        //LATBbits.LATB5 = IFS1bits.AD1IF;
-        //IFS1bits.AD1IF = 0;
-        
-        //LATBbits.LATB5 = HAS_CONVERSION_FINISHED;
-        
         #ifdef MANUAL_MODE
             PORTAbits.RA3 = 1;
 
@@ -84,6 +109,5 @@ int main(int argc, char** argv) {
             put_char('\n');
         #endif
     }
-    return (EXIT_SUCCESS);
 }
 

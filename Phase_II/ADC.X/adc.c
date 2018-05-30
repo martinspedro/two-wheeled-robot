@@ -11,6 +11,7 @@
 #include "../global.h"
 #include "adc.h"
 #include "../interrupts.h"
+#include "timer3.h"
 
 /*******************************************************************************
  *                          MACROS DEFINITION
@@ -21,17 +22,23 @@
 #define AVDD VDD                //!< Analog Positive Voltage Reference
 #define AVSS 0                  //!< Analog Negative Voltage Reference
 
-#define IO_ANALOG_PIN_REGISTER TRISB    //!< Analog Pin Register
+#define IO_ANALOG_PIN_REGISTER      TRISB     //!< Analog Pin Register
+#define IO_ANALOG_PIN_SET_REGISTER  TRISBSET  //!< Analog Pin Set Register
 
- #define NUM_CONVERSIONS_PER_INTERRUPT 8     //!< 8 Conversions will be written to the buffer
+#define NUM_CONVERSIONS_PER_INTERRUPT 8     //!< 8 Conversions will be written to the buffer
 
 #ifdef AUTO_SAMPLING_MODE
-    #define ACQUISITION_TIME_TAD      8
+    #define ACQUISITION_TIME_TAD      16
     #define CONVERSION_CLOCK_PERIOD   124
 #endif
 
-#define DEFAULT_ADC_CH_MUXA 0
-#define DEFAULT_ADC_CH_MUXB 0
+#ifdef CLOCKED_MODE
+    #define ACQUISITION_TIME_TAD      31 //16
+    #define CONVERSION_CLOCK_PERIOD   124
+#endif
+
+#define DEFAULT_ADC_CH_MUXA 0x0     //!< Default A Input Multiplexer channel
+#define DEFAULT_ADC_CH_MUXB 0x0     //!< Default B Input Multiplexer Channel
 
 #define RESET_IF_ADC {IFS1bits.AD1IF = 0;}  //!< Clear ADC Interrupt Flag
 
@@ -39,13 +46,13 @@
 #define ADC_ISPL 0     //!< ADC Sub-Priority Level 
 
 
-
-#define ADC_BUFFER_ADDRESS (&ADC1BUF0)
+#define ADC_BUFFER_ADDRESS (&ADC1BUF0)      //!< ADC Buffer Start Address
 
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/
-
+static volatile uint16_t adc_value_1;
+static volatile uint16_t adc_value_2;
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -80,12 +87,14 @@ void adc_peripheral_init(void)
         AD1CON1bits.SSRC = 0b000;
     #elif AUTO_SAMPLING_MODE
         AD1CON1bits.SSRC = 0b111;
+    #elif CLOCKED_MODE
+        AD1CON1bits.SSRC = 0b010;
     #endif
 
     /* Buffer contents will be overwritten by the ADC next conversion sequence 
      * (Normal Operation)
      */
-    AD1CON1bits.CLRASAM = 1;
+    AD1CON1bits.CLRASAM = 0;
 
     
     /* ADC Sample Auto-Start bit
@@ -97,7 +106,9 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON1bits.ASAM = 0;
     #elif AUTO_SAMPLING_MODE
-        AD1CON1bits.ASAM = 1;
+        AD1CON1bits.ASAM = 0;
+    #elif CLOCKED_MODE
+        AD1CON1bits.ASAM = 0;
     #endif  
     
     /* ADC sample/hold amplifier default state 
@@ -109,7 +120,9 @@ void adc_peripheral_init(void)
      */
     #ifdef MANUAL_MODE
         AD1CON1bits.SAMP = 0;
-    #elif AUTO_SAMPLING_MODE
+    #elif AUTO_SAMPLING_MODE 
+        AD1CON1bits.SAMP = 0;
+    #elif CLOCKED_MODE
         AD1CON1bits.SAMP = 0;
     #endif 
     
@@ -133,10 +146,13 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         DISABLE_INPUT_SCANNING;
     #elif AUTO_SAMPLING_MODE
-        //ENABLE_INPUT_SCANNING;
+        //ENABLE_INPUT_SCANNING
+        DISABLE_INPUT_SCANNING;
+        AD1CSSL = 0;
+    #elif CLOCKED_MODE
         DISABLE_INPUT_SCANNING;
     #endif 
-    
+    AD1CSSL = 0;
     
     /* Sample/Convert Sequences Per Interrupt Selection bits
      * 
@@ -146,6 +162,8 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON2bits.SMPI = 0b000;
     #elif AUTO_SAMPLING_MODE
+        AD1CON2bits.SMPI = NUM_CONVERSIONS_PER_INTERRUPT - 1;
+    #elif CLOCKED_MODE
         AD1CON2bits.SMPI = NUM_CONVERSIONS_PER_INTERRUPT - 1;
     #endif 
     
@@ -159,6 +177,8 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON2bits.BUFM = 0;
     #elif AUTO_SAMPLING_MODE
+        AD1CON2bits.BUFM = 0;
+    #elif CLOCKED_MODE
         AD1CON2bits.BUFM = 0;
     #endif 
     
@@ -176,6 +196,8 @@ void adc_peripheral_init(void)
      */
     #ifdef AUTO_SAMPLING_MODE
         AD1CON3bits.SAMC = ACQUISITION_TIME_TAD;
+    #elif CLOCKED_MODE
+        AD1CON3bits.SAMC = ACQUISITION_TIME_TAD;
     #endif
 
     /* ADC Conversion Clock Select bits 
@@ -188,6 +210,8 @@ void adc_peripheral_init(void)
     #ifdef MANUAL_MODE
         AD1CON3bits.ADCS = 0b00011110;
     #elif AUTO_SAMPLING_MODE
+        AD1CON3bits.ADCS = CONVERSION_CLOCK_PERIOD;
+    #elif CLOCKED_MODE
         AD1CON3bits.ADCS = CONVERSION_CLOCK_PERIOD;
     #endif
     
@@ -227,10 +251,10 @@ uint8_t config_input_scan(uint8_t channel)
      * The bit in the position given the number channel is set
      * e.g. channel = 3 => channel_bit_string = 0000 0000 0000 1000
      */
-    uint16_t channel_bit_string = (uint16_t) (0b1 << (channel & 0x0F)) & 0x0FF;
+    uint16_t channel_bit_string = (uint16_t) ( (0b1 << (channel & 0x0F)) & 0x0FFFF );
     
     /* Selects channels for ANx input scan (active '1') */
-    AD1CSSLbits.CSSL = channel_bit_string;
+    AD1CSSLSET = channel_bit_string & 0x0FFFF;
     
     return ADC_SUCCESS;
 }
@@ -246,12 +270,12 @@ uint8_t init_ADC_ch(uint8_t channel)
     // Converts the hexadecimal channel value to a binary string.
     // The bit in the position given the number channel is set
     // e.g. channel = 3 => channel_bit_string = 0000 0000 0000 1000
-    uint16_t channel_bit_string = (uint16_t) (0b1 << (channel & 0x0F)) & 0x0FF;
+    uint16_t channel_bit_string = (uint16_t) ( (0b1 << (channel & 0x0F)) & 0x0FFFF );
     
-    // Configure I/O PIN register
-    IO_ANALOG_PIN_REGISTER = (IO_ANALOG_PIN_REGISTER & (channel_bit_string));
+    // Configure I/O PIN register: '1' => Input
+    IO_ANALOG_PIN_SET_REGISTER = channel_bit_string;
     
-    // Select IO pin as analog input
+    // Select IO pin as analog input: '0' => Analog Pin
     AD1PCFGCLR = channel_bit_string;
     
     // Select ADC channel
@@ -290,22 +314,33 @@ uint16_t get_analog_value(void)
 
 void __ISR(_ADC_VECTOR, IPL4SOFT) ADC_ISR(void)
 {
-    LATDbits.LATD4 = 1;
-    //AD1CON1bits.ASAM = 0;
-    //LATBbits.LATB5 = AD1CON1bits.SAMP; // HAS_CONVERSION_FINISHED;
+   LATDbits.LATD4 = 1;
+    /*
+    //AD1CON1bits.ASAM = 1;
     
-    uint16_t aux;
     volatile int  *adc_buffer_p;
     adc_buffer_p = (BUFFER_FILL_STATUS == 1) ? ADC_BUFFER_ADDRESS : ADC_BUFFER_ADDRESS + 0x80;
+   
+    adc_value_1 = 0;
+    adc_value_2 = 0;
+   
     uint8_t k;
-    
-    for( k = 1; k < NUM_CONVERSIONS_PER_INTERRUPT; k++)
+    for( k = 1; k < NUM_CONVERSIONS_PER_INTERRUPT; k += 2)
     {
-        aux = *(adc_buffer_p++);
+        adc_value_1 += *(adc_buffer_p);
+        adc_value_2 += *(adc_buffer_p + 1);
+        adc_buffer_p += 2;
     }
-  
+    
+   // put_char('q');
+   // put_char('\n');
+    
+    adc_value_1 = adc_value_1 >> 4;
+    adc_value_2 = adc_value_2 >> 4;
+    
+    */
     RESET_IF_ADC;
-    //LATBbits.LATB5 = HAS_CONVERSION_FINISHED;
-    //AD1CON1bits.ASAM = 1;
+
     LATDbits.LATD4 = 0;
+    //AD1CON1bits.ASAM = 1;
 }

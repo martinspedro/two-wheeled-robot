@@ -9,12 +9,6 @@
 #include <xc.h>
 
 #include "../global.h"
-#include "../ADC.X/adc.h"
-#include "../PWM.X/timer2.h"
-#include "../PWM.X/pwm1.h"
-#include "../PWM.X/pwm2.h"
-#include "../PWM.X/pwm3.h"
-#include "../PWM.X/pwm4.h"
 
 #include "DRV8833.h"
 
@@ -22,9 +16,9 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM1_duty_cycle(duty_cycle)
-#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
-#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM3_duty_cycle(duty_cycle)
+#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
+#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM3_duty_cycle(duty_cycle)
+#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM5_duty_cycle(duty_cycle)
 #define MOTOR_RIGHT_B_SET_PWM(duty_cycle) set_PWM4_duty_cycle(duty_cycle)
 
 #define nSLEEP_TRIS TRISDbits.TRISD5
@@ -54,10 +48,13 @@ void configure_DRV8833_interface(void)
     // Configure PWM
     config_Timer2();
     
-    output_compare_1_init();
     output_compare_2_init();
     output_compare_3_init();
     output_compare_4_init();
+    output_compare_5_init();
+    
+    // Set all motor to open state
+    open_all_motors();
 }
 
 void enable_DRV8833(void)
@@ -68,12 +65,23 @@ void enable_DRV8833(void)
             
     ENABLE_TIMER_2;
             
-    ENABLE_OUTPUT_COMPARE_PERIPHERAL_1;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_2;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_3;
     ENABLE_OUTPUT_COMPARE_PERIPHERAL_4;
+    ENABLE_OUTPUT_COMPARE_PERIPHERAL_5;
 }
 
+uint8_t DRV8833_fault_condition(void)
+{
+    if(nFAULT == DRV8833_ERROR)
+    {
+        open_all_motors();
+    }
+    return (nFAULT);
+}
+
+
+// <editor-fold defaultstate="collapsed" desc="ON-OFF MOTOR METHODS">
 /*******************************************************************************
  *                         ON-OFF MOTOR METHODS
  ******************************************************************************/
@@ -141,8 +149,11 @@ void brake_right_motor(void)
     MOTOR_RIGHT_B_SET_PWM(100);
 }
 
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc="PWM MOTOR METHODS">
 /*******************************************************************************
- *                       PWM MOTORS METHODS
+ *                       PWM MOTOR METHODS
  ******************************************************************************/
 void forward_fast_decay_left(uint8_t duty_cycle)
 {
@@ -225,3 +236,33 @@ void reverse_slow_decay_right(uint8_t duty_cycle)
     MOTOR_RIGHT_A_SET_PWM(duty_cycle);
     MOTOR_RIGHT_B_SET_PWM(100);
 }
+
+// </editor-fold>
+
+// <editor-fold defaultstate="collapsed" desc="MOTORS DIRECTION CONTROLLER">
+
+void move_forward(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    forward_fast_decay_left(duty_cycle_left);
+    forward_fast_decay_right(duty_cycle_right);
+}
+
+void move_backwards(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    reverse_fast_decay_left(duty_cycle_left);
+    reverse_fast_decay_right(duty_cycle_right);
+}
+
+void rotate_clockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    forward_fast_decay_left(duty_cycle_left);
+    reverse_fast_decay_right(duty_cycle_right);
+}
+
+void rotate_counterclockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    forward_fast_decay_left(duty_cycle_left);
+    reverse_fast_decay_right(duty_cycle_right);
+}
+
+// </editor-fold>

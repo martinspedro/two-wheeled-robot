@@ -382,6 +382,10 @@ uint8_t get_char(char *p_char)
 
 uint8_t get_uint8(uint8_t *p_uint8) 
 {
+    if (rx_buffer.count == 0) {
+        return UART_ERROR;
+    }
+    
     uint8_t high, low, return_high, return_low;
     
     return_high = get_char(&high);

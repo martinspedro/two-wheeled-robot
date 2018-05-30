@@ -104,10 +104,19 @@ void configure_external_interrupts(void)
 
 void init_encoder_state(void)
 {
+    DISABLE_ENCODERS;
     CS_left  = ( (ENCODER_LEFT_A  << 1) | ENCODER_LEFT_B  );
     CS_right = ( (ENCODER_RIGHT_A << 1) | ENCODER_RIGHT_B );           
+    ENABLE_ENCODERS;
 }
 
+void reset_enc_pulse_cnt(void)
+{
+    DISABLE_ENCODERS;
+    pulse_count_L = 0;
+    pulse_count_R = 0;
+    ENABLE_ENCODERS;
+}
 /** \brief ISR for Encoder A of Left Motor 
  * 
  * \pre    Global and External Interrupts must be configured and enabled
@@ -135,6 +144,11 @@ void __ISR(_EXTERNAL_1_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_A(void)
     CS_left = (INTCONbits.INT1EP == EXT_INT_RISING_EDGE) ? (CS_left | 0b10) : (CS_left & 0b01);
     pulse_count_L += QUAD_ENC_LUT_A[ (INTCONbits.INT1EP << 1) + ENCODER_LEFT_B ];
     
+    #ifdef DEBUG_WITH_UART
+        put_char( (CS_left & 0x01) + 0x30);
+        put_char( ( (CS_left & 0x02) >> 1 ) + 0x30);
+        put_char('\n');
+    #endif
     
     TOGGLE_LEFT_A_ENC_EDGE;     // Invert edge detection polarity
     RESET_IF_EXT_INT1;
@@ -172,6 +186,11 @@ void __ISR(_EXTERNAL_2_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_B(void)
     CS_left = (INTCONbits.INT2EP == EXT_INT_RISING_EDGE) ? (CS_left | 0b01) : (CS_left & 0b10);
     pulse_count_L += QUAD_ENC_LUT_B[ (INTCONbits.INT2EP << 1) + ENCODER_LEFT_A ];
    
+    #ifdef DEBUG_WITH_UART
+        put_char( (CS_left & 0x01) + 0x30);
+        put_char( ( (CS_left & 0x02) >> 1 ) + 0x30);
+        put_char('\n');
+    #endif
     
     TOGGLE_LEFT_B_ENC_EDGE;     // Invert edge detection polarity
     RESET_IF_EXT_INT2;
@@ -209,7 +228,12 @@ void __ISR(_EXTERNAL_3_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_A(void)
     CS_right = (INTCONbits.INT3EP == EXT_INT_RISING_EDGE) ? (CS_right | 0b10) : (CS_right & 0b01);
     pulse_count_R += QUAD_ENC_LUT_A[ (INTCONbits.INT3EP << 1) + ENCODER_LEFT_B ];
     
-    
+    #ifdef DEBUG_WITH_UART
+        put_char( (CS_right & 0x01) + 0x30);
+        put_char( ( (CS_right & 0x02) >> 1 ) + 0x30);
+        put_char('\n');
+    #endif
+
     TOGGLE_RIGHT_A_ENC_EDGE;     // Invert edge detection polarity
     RESET_IF_EXT_INT3;
     
@@ -246,7 +270,12 @@ void __ISR(_EXTERNAL_4_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_B(void)
     CS_right = (INTCONbits.INT4EP == EXT_INT_RISING_EDGE) ? (CS_right | 0b01) : (CS_right & 0b10);
     pulse_count_R += QUAD_ENC_LUT_B[ (INTCONbits.INT4EP << 1) + ENCODER_LEFT_A ];
    
-    
+    #ifdef DEBUG_WITH_UART
+        put_char( (CS_right & 0x01) + 0x30);
+        put_char( ( (CS_right & 0x02) >> 1 ) + 0x30);
+        put_char('\n');
+    #endif
+        
     TOGGLE_RIGHT_B_ENC_EDGE;     // Invert edge detection polarity
     RESET_IF_EXT_INT4;
     
