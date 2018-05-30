@@ -22,8 +22,8 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define TIMER4_IPL  7        //!< Interrupt Priority Level for TIMER 3
-#define TIMER4_IPSL 0        //!< Interrupt Sub Priority Level for TIMER 3
+#define TIMER4_IPL  6        //!< Interrupt Priority Level for TIMER 4
+#define TIMER4_IPSL 2        //!< Interrupt Sub Priority Level for TIMER 4
 
 
 
@@ -36,6 +36,7 @@
 void config_Timer4(void)
 {
     DISABLE_TIMER_4;
+    CLEAR_TMR4;
     
     /* Enable Timer4 module operation when CPU enters IDLE mode
      * 
@@ -95,6 +96,10 @@ void config_Timer4(void)
      *              configured to form a 32-bit timer.
      */
      PR4 = PRESCALER_PID_INT_PERIOD;
+     
+     // INterrupts
+     IPC4bits.T4IP = TIMER4_IPL;
+     IPC4bits.T4IS = TIMER4_IPSL;
 }
 
 
