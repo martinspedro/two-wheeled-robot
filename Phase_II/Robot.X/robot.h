@@ -1,8 +1,11 @@
 /* 
- * File:   robot.h
- * Author: martinspedro
- *
- * Created on May 29, 2018, 12:21 AM
+ * \file:  robot.h
+ * \brief  Robot Configuration and Control Header Files
+ * 
+ * \author Pedro Martins
+ * \author Andre Gradim
+ * 
+ * \date   Created on May 29, 2018, 12:21 AM
  */
 
 #include <xc.h>
@@ -13,56 +16,67 @@
 #include "../UART.X/uart1.h"
 #include "../DRV8833.X/DRV8833.h"
 #include "../Encoder.X/encoder.h"
+#include "../VLX.X/tof.h"
+#include "../MPU.X/mpu6050.h"
 
+#include "IO.h"
 #include "communication_protocol.h"
 #include "timer4.h"
 
 #ifndef ROBOT_H
 #define	ROBOT_H
 
-#define ROBOT_ERROR   1
-#define ROBOT_SUCCESS 0
+/*******************************************************************************
+ *                      ROBOT PHYSICAL CONSTRAINTS 
+ ******************************************************************************/
+// 
+#define WHEEL_DIAMETER          60                  //!< Wheel Diamenter in mm
+#define WHEEL_RADIO             WHEEL_DIAMETER/2    //!< Wheel Ratio in mm
+#define WHEEL_PERIMETER         189                 //!< Wheel Perimeter in mm
+#define WHEEL_2_WHEEL_DIST      158                 //!< Wheel to Wheel Distance in mm
+
+#define MOTOR_GEAR_RATIO        75                  //!< Motor Gear Ration
+#define COUNTS_PER_REV          12                  //!< Encoder Counts per extended encoder shaft revolution
+#define QUADRATURE_CPR          4*COUNTS_PER_REV    //!< Counts per revolution of the quadrature encoder state machine
 
 
-#define START_BUTTON PORTFbits.RF0
-#define STOP_BUTTON  PORTFbits.RF1
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
+#define ROBOT_ERROR   1          //!< Return value macro that indicates an error has occurred
+#define ROBOT_SUCCESS 0          //!< Return value macro that indicates the operation terminated succesfully 
 
-#define LED1 LATGbits.LATG12
-#define LED2 LATGbits.LATG13
-#define LED3 LATGbits.LATG14
+#define MAX_ANGLE 180            //!< Maximum rotation angle in one direction
 
-#define ERROR_LED             LED1
-#define ROBOT_INIT_SUCESS_LED LED2
-#define OBSTACLE_DETECTED_LED LED3
+#define MLEFT_SETPOINT_SPEED  20    //!< Left Wheel Velocity Setpoint  (in function of PWM %)
+#define MRIGHT_SETPOINT_SPEED 20    //!< Right Wheek Velocity Setpoint (in function of PWM %)
 
-#define EXTRA_1_INPUT  {TRISD8bits.RD8  = 1;}
-#define EXTRA_1_OUTPUT {TRISD8bits.RD8  = 0;}
-#define EXTRA_2_INPUT  {TRISD8bits.RD9  = 1;}
-#define EXTRA_2_OUTPUT {TRISD8bits.RD9  = 0;}
-#define EXTRA_3_INPUT  {TRISD8bits.RD10 = 1;}
-#define EXTRA_3_OUTPUT {TRISD8bits.RD10 = 0;}
-
-#define MAX_ANGLE 180
+#define MAX_LEFT_DISTANCE   50      //!< Minimum obstacle distance (mm) for Left Obstacle Sensor
+#define MAX_CENTER_DISTANCE 75      //!< Minimum obstacle distance (mm) for Center Obstacle Sensor
+#define MAX_RIGHT_DISTANCE  50      //!< Minimum obstacle distance (mm) for Right Obstacle Sensor
 
 
-
-#define ENABLE_PID  ENABLE_TIMER4_INTERRUPTS
-#define DISABLE_PID DISABLE_TIMER4_INTERRUPTS
-
-#define MLEFT_SETPOINT_SPEED  20   // %
-#define MRIGHT_SETPOINT_SPEED 20   // %
-
-#define MAX_LEFT_DISTANCE   50    // mm
-#define MAX_CENTER_DISTANCE 75   // mm
-#define MAX_RIGHT_DISTANCE  50    // mm
+#define ENABLE_PID   ENABLE_TIMER4_INTERRUPTS       //!< Encapsulate PID Timer Enable Instruction
+#define DISABLE_PID  DISABLE_TIMER4_INTERRUPTS      //!< Encapsulate PID Timer Disable Instruction
+#define CLEAR_PID_IF CLEAR_TMR4_IF                  //!< Encapsulate PID Timer Clear Interrupt Flag Instruction
 
 
- 
-// flag to distinguish between move and rotate
-uint8_t is_rotation = 0;
+/*******************************************************************************
+ *                        FUNCTION HEADERS DEFINITION
+ ******************************************************************************/
 
-void init_IO(void);
-
+/** \brief Set motors desired operation 
+ * 
+ *  Using the communication protocol ID selects motors desired operation mode and
+ *  executes DRV8833 routines
+ * 
+ * \param  id Instruction ID from the communication protocol
+ * 
+ * \return ROBOT_ERROR   if ID is invalid or not a movement/rotatio ID
+ * \return ROBOT_SUCCESS if ID is valid
+ * 
+ * \author Pedro Martins
+ */
 uint8_t set_movement_direction(uint8_t id);
 
 #endif	/* ROBOT_H */
