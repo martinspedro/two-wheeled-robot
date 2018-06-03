@@ -1,9 +1,8 @@
 /** 
- * \file   timer2.c
- * \brief  Timer 2 Module C configuration class file
+ * \file   timer4.c
+ * \brief  Timer 4 Module C configuration class file
  * 
- * The Timer 2 is the timer dedicated to the Output and Compare Peripheral, used
- * as a PWM Module
+ * The Timer 4 is the timer dedicated to PID control algorithm
  * 
  * \author Pedro Martins
  * \date   Created on May 5, 2018, 7:39 PM
@@ -26,8 +25,7 @@
 #define TIMER4_IPSL 2        //!< Interrupt Sub Priority Level for TIMER 4
 
 
-
-#define CLEAR_TMR4 {TMR4 = 0;}
+#define CLEAR_TMR4 {TMR4 = 0;}      //!< Clear Timer 4 Count Register
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -38,23 +36,10 @@ void config_Timer4(void)
     DISABLE_TIMER_4;
     CLEAR_TMR4;
     
-    /* Enable Timer4 module operation when CPU enters IDLE mode
-     * 
-     * Stop in IDLE Mode bit
-     *   1 = Discontinue operation when CPU enters IDLE mode
-     *   0 = Continue operation in IDLE mode
-     */
+    /* Enable Timer4 module operation when CPU enters IDLE mode */
     T4CONbits.SIDL = 0;
     
-    /* Disable Timer 4 Gate Accumulation
-     * 
-     * Timer Gated Time Accumulation Enable bit
-     *   When TCS = 1:
-     *      This bit is ignored and reads as ?0?
-     *   When TCS = ?0?:
-     *      1 = Gated time accumulation is enabled
-     *      0 = Gated time accumulation is disabled
-     */
+    /* Disable Timer 4 Gate Accumulation */
     T4CONbits.TGATE = 0;
     
     /* Select 1:1 prescaler
@@ -71,31 +56,14 @@ void config_Timer4(void)
      */
     T4CONbits.TCKPS = 0b011;
     
-    /* Select independent operation from Timer 2 and 3
-     * 
-     * 32-bit Timer Mode Select bits
-     *   1 = TMR2 and TMR3 form a 32-bit timer
-     *   0 = TMR2 and TMR3 are separate 16-bit timers
-     * 
-     */
+    /* Select independent operation from Timer 4 and 5 */
     T4CONbits.T32 = 0;
     
-    /* Select Internal Peripheral Clock as Clock Source
-     * 
-     * TMR2 Clock Source Select bit
-     *   1 = External clock from T2CK pin
-     *   0 = Internal peripheral clock
-     */
+    /* Select Internal Peripheral Clock as Clock Source */
     T4CONbits.TCS = 0;
     
-    /* Set Period of PWM
-     * 
-     * Period Register
-     *    PR<15:0>: 16-bit Timer2 period match value. Provides lower half of the
-     *              32-bit period match value when Timer2 and Timer3 are 
-     *              configured to form a 32-bit timer.
-     */
-     PR4 = PRESCALER_PID_INT_PERIOD;
+    /* Set Period of Timer 4 interrupt */
+     PR4 = TMR4_INT_PERIOD;
      
      // INterrupts
      IPC4bits.T4IP = TIMER4_IPL;
