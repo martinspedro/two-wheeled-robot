@@ -83,6 +83,7 @@ uint8_t set_movement_direction(uint8_t id)
  * 
  * \author Pedro Martins
  * \author Andre Gradim
+ * \author J.L.Azevedo (23/10/2014)
  */
 void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
 {
