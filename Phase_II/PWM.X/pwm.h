@@ -9,10 +9,13 @@
 #ifndef PWM_H
 #define	PWM_H
 
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
 #define PWM_ERROR   1       //!< PWM Functions return in case of error
 #define PWM_SUCCESS 0       //!< PWM Functions return in case of success
 
-#define FREQ_PWM    2000   //!< Desired Frequency for all PWM modules
+#define FREQ_PWM    2000    //!< Desired Frequency for all PWM modules
 
 
 /** \brief Disables or Enables PWM duty-cycle register value rounding

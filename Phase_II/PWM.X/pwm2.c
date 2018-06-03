@@ -136,7 +136,7 @@ uint8_t set_PWM2_duty_cycle(uint8_t duty_cycle)
         exit_cond = PWM_ERROR;
     }
     
-    #ifdef PWM_ROUNDING
+    #ifdef OCxRS_ROUNDING
         new_OC2RS  = ( ( (PR2 * duty_cycle) * 10 / 100) + 5) / 10;
     #else
         new_OC2RS = (PR2 * duty_cycle) / 100;

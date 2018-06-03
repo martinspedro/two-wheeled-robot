@@ -1,6 +1,6 @@
 /** 
  * \file   pwm1.c
- * \brief  Pulse Width Modulation Module 1 Configuration C file
+ * \brief  Pulse Width Modulation Module 4 Configuration C file
  * \pre    Uses Timer 2
  * 
  * \author Pedro Martins
@@ -136,7 +136,7 @@ uint8_t set_PWM4_duty_cycle(uint8_t duty_cycle)
         exit_cond = PWM_ERROR;
     }
     
-    #ifdef PWM_ROUNDING
+    #ifdef OCxRS_ROUNDING
         new_OC1RS  = ( ( (PR2 * duty_cycle) * 10 / 100) + 5) / 10;
     #else
         new_OC4RS = (PR2 * duty_cycle) / 100;
