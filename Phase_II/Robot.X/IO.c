@@ -7,7 +7,7 @@
  */
 #include "IO.h"
 
-#define CLEAR_LEDS {LATGCLR  = 0x7000;}
+#define CLEAR_LEDS {LATGCLR  = 0x7000;}     //!< Turns LEDs OFF
 
 
 void init_IO(void)
