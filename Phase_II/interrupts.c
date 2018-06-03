@@ -27,8 +27,8 @@
 #define INTERRUPT_VECTOR_BITS     INTSTATbits.VEC
 
 
-#define set_isr_state(state) {__builtin_set_isr_state(state);}
-#define get_isr_state(state) {__builtin_get_isr_state(state);}
+#define set_isr_state(state) {__builtin_set_isr_state(state);}      //!< Coprocessor macro: Set Interrupt Service Routine State
+#define get_isr_state(state) {__builtin_get_isr_state(state);}      //!< Coprocessor macro: Get Interrupt Service Routine State
 
 
 

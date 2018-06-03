@@ -12,12 +12,12 @@
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
+
 /*******************************************************************************
  *                           MACROS DEFINITION
  ******************************************************************************/
 #define Enable_Global_Interrupts()   asm volatile("ei")     //!< Enables Global Interrupts  
 #define Disable_Global_Interrupts()  asm volatile("di")     //!< Disables Global Interrupts 
-
 
 
 /*******************************************************************************
