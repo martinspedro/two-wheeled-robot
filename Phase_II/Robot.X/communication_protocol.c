@@ -1,8 +1,10 @@
-/* 
- * File:   communication_protocol.h
- * Author: martinspedro
- *
- * Created on May 29, 2018, 8:55 AM
+/** 
+ * \file   communication_protocol.h
+ * \brief  Communication Protocol Module Header file
+ * \pre    Uses UART1
+ * 
+ * \author Pedro Martins
+ * \date   Created on May 29, 2018, 8:55 AM
  */
 
 #include "../UART.X/uart1.h"
@@ -11,12 +13,12 @@
 void manage_initial_handshake()
 {
     unsigned char id;
-    while( 1 ){
-        
-        //Wait for the receiver to get data
+    while(1)
+    {   
+        // Wait until the receiver gets data
         while( get_char(&id) == UART_ERROR );
         
-        //If the correct byte is received, move on
+        //If a correct handshake is issued, move on. Else retry
         if( id == ID_HANDSHAKE_REQUEST ){
             break;
         } else {
@@ -24,6 +26,6 @@ void manage_initial_handshake()
         }
     }
     
-    //After the correct ID has been received, send the confirmation
-    put_char(ID_LOCOMOTION_INIT_OK); 
+    // Send ACK after receiving Correct Initialization ID
+    put_char(ID_HANDSHAKE_ACK); 
 }   
