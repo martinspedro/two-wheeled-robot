@@ -30,15 +30,19 @@
 #define ENABLE_EXT_INT4  {IEC0bits.INT4IE = 1;}     //!< Enables  INT4 interrupt 
 #define DISABLE_EXT_INT4 {IEC0bits.INT4IE = 0;}     //!< Disables INT4 interrupt 
 
-#define ENABLE_ENCODERS   {ENABLE_EXT_INT1; ENABLE_EXT_INT2; ENABLE_EXT_INT3; ENABLE_EXT_INT4;}
-#define DISABLE_ENCODERS  {DISABLE_EXT_INT1; DISABLE_EXT_INT2; DISABLE_EXT_INT3; DISABLE_EXT_INT4;}
-
+#define ENABLE_ENCODERS   {ENABLE_EXT_INT1; ENABLE_EXT_INT2; ENABLE_EXT_INT3; ENABLE_EXT_INT4;}         //!< Enable All Encoders 
+#define DISABLE_ENCODERS  {DISABLE_EXT_INT1; DISABLE_EXT_INT2; DISABLE_EXT_INT3; DISABLE_EXT_INT4;}     //!< Disables All Encoders
 
 #define ENCODER_ERROR   1   //!< Return value in case of Error
 #define ENCODER_SUCCESS 0   //!< Return value in case of Success
 
+
+/*******************************************************************************
+ *                       CLASS VARIABLES DEFINITION
+ ******************************************************************************/
 extern volatile int16_t pulse_count_L;      //!< Pulse Count for Left Wheel
 extern volatile int16_t pulse_count_R;      //!< Pulse Count for Right Wheel
+
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
