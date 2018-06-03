@@ -17,59 +17,78 @@
 
 #include "robot.h"
 
-#define DETECT_OBSTACLES
+/*******************************************************************************
+ *                          MACROS DEFINITION
+ ******************************************************************************/
+#define DETECT_OBSTACLES    //!< If defined, obtacle detection is active
 
 #define StartState WAIT		//!< Robot Operation State Machine Initial State
 
-enum State {                // State Machine
-	WAIT,	
-    PROCESS,
-	RUNNING,
-    STOPPING,
-    ODOMETRY
+
+/*******************************************************************************
+ *                        VARIABLES DEFINITION
+ ******************************************************************************/
+enum Robot_State    //! Robot State Machine Possible States
+{    
+    WAIT,           //!< Waits for User Instructions
+    PROCESS,        //!< Prepares the robot to execute user requests
+    RUNNING,        //!< Executing User Requests
+    STOPPING        //!< Finnish executing user requests.
 };
 
 /* VARIABLE DECLARATION AND INITITALIZATION */
-unsigned char received_byte_id = 0;
-unsigned char received_byte_arg = 0;
+unsigned char received_byte_id  = 0;    //!< Received Intruction ID
+unsigned char received_byte_arg = 0;    //!< Received Intruction Argument
+unsigned char current_byte_id   = 0;    //!< Instruction ID of the operation being executed
 
-uint16_t distance_left = 0;
-uint16_t distance_center = 0;
-uint16_t distance_right = 0;
+uint16_t distance_left   = 0;           //!< Left sensor distance (mm) to nearest obstacle
+uint16_t distance_center = 0;           //!< Center sensor distance (mm) to nearest obstacle
+uint16_t distance_right  = 0;           //!< Right sensor distance (mm) to nearest obstacle
 
-// id of the operation being executed
-unsigned char current_byte_id = 0;
+uint8_t is_rotation = 0;                //!< Flag to indicate is current instruction is a movent or a rotatation
 
+enum Robot_State CS = StartState;       //!< Current State of Robot State Machine 
+
+    
+
+/*******************************************************************************
+ *                          MAIN CODE
+ ******************************************************************************/
+
+/** \brief Robot Main Program
+ * 
+ * \param  None
+ * \return None.
+ * 
+ * \author Pedro Martins
+ * \author Andre Gradim
+ */
 void main(void) 
 {    
-    enum State CS = StartState;	
-    
     /* GENERIC I/O CONFIG */
     init_IO();
     
     /* CONFIGURATIONS */
-    config_UART1(115200, 8, 'N', 1);
+    config_UART1(115200, 8, 'N', 1);    // UART
+    configure_DRV8833_interface();      // LOCOMOTION CONTROL
+    config_Timer4();                    // PID ISR 
+    openI2C2();                         // I2C BUS
+    configure_external_interrupts();    // Quadrature Encoders
+    configure_global_interrupts();      // Global Interrupts
     
-    configure_DRV8833_interface();
-            
-    config_Timer4();
-    
-    openI2C2();
-    
-    configure_global_interrupts();
-    configure_external_interrupts();
     
     /* ENABLES */
-    ENABLE_UART1_PHERIPHERAL;
-    enable_DRV8833();
-    ENABLE_TIMER_4;
+    ENABLE_UART1_PHERIPHERAL;           // UART1 Peripheral, TX and RX
+    enable_DRV8833();                   // Locomotion
+    ENABLE_TIMER_4;                     // Turn PID timer ON
     
     /* INTERRUPTIONS ENABLES */
     ENABLE_UART1_ALL_INTERRUPTS;
     ENABLE_ENCODERS;
     Enable_Global_Interrupts();
     
-    initAllSensors();
+    initAllSensors();                   // Init DIstance Sensors (requires UART)
+    
     
     /* START-UP SEQUENCE */
     put_string("Awaiting handshake... ");
@@ -78,30 +97,21 @@ void main(void)
     put_string("SUCCESS!\n\nROBOT Main Application.\nFirmware last modified on: ");
     put_string(__DATE__); put_string(", "); put_string(__TIME__); put_char('\n');
     
+    /* TOGGLE STATUS LEDS */
     ROBOT_INIT_SUCESS_LED = 1;
     ERROR_LED = 0;
     
     
-    //while(!START_BUTTON);
+    //while(!START_BUTTON);             // Wait for Start order
     
-    put_string("ROBOT ENABLED!\n");
+    put_string("ROBOT ACTIVE!\n");
     
     while(!STOP_BUTTON)
     {
-        if( DRV8833_fault_condition() == DRV8833_ERROR && (CS == RUNNING) )
-        {
-            ERROR_LED = 1;
-            put_string(DRV8833_ERROR_MESSAGE);
-            CS = STOPPING;
-        }
-        else
-        {
-            ERROR_LED = 0;
-        }
-     
+        // <editor-fold defaultstate="collapsed" desc="PARSE USER REQUESTS">
         if( get_char(&received_byte_id) == UART_SUCCESS )
         {
-            // <editor-fold defaultstate="collapsed" desc="UART read">
+            
             // If only the ID is expected (emergency stop)...
             if( (received_byte_id == ID_EMERGENCY_STOP) )// && (CS != STOPPING) )
             {
@@ -121,28 +131,44 @@ void main(void)
                 CS = PROCESS;
             }
         }
+        // </editor-fold>
+        
+        // <editor-fold defaultstate="collapsed" desc="MOTOR FAULT CONDITION VERIFICATION">
+        if( DRV8833_fault_condition() == DRV8833_ERROR && (CS == RUNNING) )
+        {
+            ERROR_LED = 1;
+            put_string(DRV8833_ERROR_MESSAGE);
+            CS = STOPPING;
+        }
+        else
+        {
+            ERROR_LED = 0;
+        }
+        // </editor-fold>
         
         switch(CS)
         {
             case PROCESS:
-                while( get_char(&received_byte_arg) == UART_SUCCESS);
+                // <editor-fold defaultstate="collapsed" desc="PROCESS USER REQUESTS">
+                while( get_char(&received_byte_arg) == UART_SUCCESS);   // Wait for Instruction Arguments
                 
                 init_encoder_state();   // Initialize encoder state
-                reset_enc_pulse_cnt();
+                reset_enc_pulse_cnt();  // Reset all encoder pulse counters
                 
-                // define if is a rotation or a move 
+                // dFilter rotations from movement
                 is_rotation = (uint8_t)((current_byte_id & 0x02) >> 1);
                 
-                // Truncate rotation
+                // Truncate and optimize rotation if required
                 if( is_rotation && (received_byte_arg > MAX_ANGLE) )
                 {
                     received_byte_arg -= MAX_ANGLE;
                     
                     // if it is not clockwise is counterclockwise, then set to clockwise
                     current_byte_id = (current_byte_id == ID_ROTATE_CLOCKWISE) ? ID_ROTATE_COUNTERCLOCKWISE : ID_ROTATE_CLOCKWISE;
-                    put_string("IS rotation\n");
+                    //put_string("IS rotation\n");
                 }
                 
+                // Actuate on DRV8833
                 if(set_movement_direction(current_byte_id) == ROBOT_ERROR)
                 {
                     //put_char(current_byte_id);
@@ -151,18 +177,23 @@ void main(void)
                     put_string("ERROR");
                 }
                 
-                //put_char( current_byte_id);
-                CS = RUNNING;
+                // Enable PID control algorithm if it is a movement
                 if(current_byte_id == ID_MOVE_FORWARD)
                 {
                     ENABLE_PID;
                 }
+                
+                CS = RUNNING;
                
+            // </editor-fold>
             break;
             
+            
             case RUNNING:
+                // <editor-fold defaultstate="collapsed" desc="EXECUTING USER REQUESTS">
                 //put_string("RUNNING\n");
                 
+                // Read Distance Sensors
                 tofReadDistanceAllSensors(&distance_left, &distance_center, &distance_right);
                 put_uint16(distance_left); 
                 put_string(" - ");
@@ -171,6 +202,8 @@ void main(void)
                 put_uint16(distance_right); 
                 put_char('\n');
                 
+                /* If obstacle detection is enabled and the robot is moving forward, 
+                   enable obstacle detection and emergency stop conditions */
                 #ifdef DETECT_OBSTACLES
                 if(current_byte_id == ID_MOVE_FORWARD)
                 {
@@ -192,20 +225,25 @@ void main(void)
                     }
                 }
                 #endif
-                break;
+            // </editor-fold>
+            break;
+            
+            
             case STOPPING:
+                // <editor-fold defaultstate="collapsed" desc="STOP ROBOT MOVEMENT">
                 put_string("STOPPING\n");
                 DISABLE_PID;
                 brake_all_motors();
                 CS = WAIT;
-            break;
-                
+            // </editor-fold>
+            break;    
         }
         
     }
     
+    // stop robot if STOP button is pressed
     brake_all_motors();
     put_string("STOPPED!\n");
-        
+    
 }
 
