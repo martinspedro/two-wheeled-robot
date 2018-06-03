@@ -860,6 +860,7 @@ EXCLUDE_PATTERNS       = nbproject
 EXCLUDE_PATTERNS      += build
 EXCLUDE_PATTERNS      += dist
 EXCLUDE_PATTERNS      += debug
+EXCLUDE_PATTERNS      += Report
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
