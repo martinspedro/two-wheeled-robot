@@ -1,6 +1,7 @@
 /** 
- * \file   timer2.c
- * \brief  Timer 2 Module C configuration class file
+ * \file    timer2.c
+ * \brief   Timer 2 Module C configuration class file
+ * \remarks Used by the PWM modules
  * 
  * The Timer 2 is the timer dedicated to the Output and Compare Peripheral, used
  * as a PWM Module
@@ -12,7 +13,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "../global.h"
+#include "../interrupts.h"
 
 #include "pwm.h"
 #include "timer2.h"
@@ -20,10 +23,21 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define TMR2_PRESCALER 1
+#define TIMER2_IPL  0        //!< Interrupt Priority Level for TIMER 2
+#define TIMER2_IPSL 0        //!< Interrupt Sub Priority Level for TIMER 2
 
-#define PWM_PERIOD    PBCLK / (FREQ_PWM * TMR2_PRESCALER) - 1
 
+#define TMR2_PRESCALER 1        //!< Timer 2 Prescaler
+
+/** \brief PWM Period Value
+ * 
+ * The PWM period can be calculated by
+ * \f[\frac{PBCLK}{FREQ\_PWM \times TMR2\_PRESCALER} - 1\f]
+ */
+#define TMR2_PERIOD  PBCLK / (FREQ_PWM * TMR2_PRESCALER) - 1
+
+#define CLEAR_TMR2_IF {IFS0bits.T2IF = 0;}    //!< Clear Timer 2 Interrupt Flag
+#define CLEAR_TMR2 {TMR2 = 0;}                //!< Clear Timer 2 Count Register
 
 
 /*******************************************************************************
@@ -33,24 +47,12 @@
 void config_Timer2(void)
 {
     DISABLE_TIMER_2;
+    CLEAR_TMR2;
     
-    /* Enable Timer2 module operation when CPU enters IDLE mode
-     * 
-     * Stop in IDLE Mode bit
-     *   1 = Discontinue operation when CPU enters IDLE mode
-     *   0 = Continue operation in IDLE mode
-     */
+    /* Enable Timer2 module operation when CPU enters IDLE mode */
     T2CONbits.SIDL = 0;
     
-    /* Disable Timer 2 Gate Accumulation
-     * 
-     * Timer Gated Time Accumulation Enable bit
-     *   When TCS = 1:
-     *      This bit is ignored and reads as ?0?
-     *   When TCS = ?0?:
-     *      1 = Gated time accumulation is enabled
-     *      0 = Gated time accumulation is disabled
-     */
+    /* Disable Timer 2 Gate Accumulation */
     T2CONbits.TGATE = 0;
     
     /* Select 1:1 prescaler
@@ -67,29 +69,41 @@ void config_Timer2(void)
      */
     T2CONbits.TCKPS = 0b000;
     
-    /* Select independent operation from Timer 2 and 3
-     * 
-     * 32-bit Timer Mode Select bits
-     *   1 = TMR2 and TMR3 form a 32-bit timer
-     *   0 = TMR2 and TMR3 are separate 16-bit timers
-     * 
-     */
+    /* Select independent operation from Timer 2 and 3 */
     T2CONbits.T32 = 0;
     
-    /* Select Internal Peripheral Clock as Clock Source
-     * 
-     * TMR2 Clock Source Select bit
-     *   1 = External clock from T2CK pin
-     *   0 = Internal peripheral clock
-     */
+    /* Select Internal Peripheral Clock as Clock Source */
     T2CONbits.TCS = 0;
     
-    /* Set Period of PWM
-     * 
-     * Period Register
-     *    PR<15:0>: 16-bit Timer2 period match value. Provides lower half of the
-     *              32-bit period match value when Timer2 and Timer3 are 
-     *              configured to form a 32-bit timer.
-     */
-     PR2 = PWM_PERIOD;
+    /* Set Timer 2 Period */
+     PR2 = TMR2_PERIOD;
+     
+    /* Set Interrupt Priority Level and Sublevel */
+    IPC2bits.T2IP = TIMER2_IPL;
+    IPC2bits.T2IS = TIMER2_IPSL;
+}
+
+
+
+/** \brief ISR for Timer 2
+ * 
+ * \pre    Global Interrupts must be configured and enabled
+ * \pre    Timer 2 must be configured and enabled
+ * 
+ * \remarks This interrupt service routine is empty because it is not executed
+ * 
+ * \param  None.
+ * \return None.
+ * 
+ * Interruption Service Routine for Timer 2 (TMR2)
+ * This Timer is associated with the PWM module
+ * 
+ * The Interruption Priority Level is 0 and the compiler must write software to
+ * perform the context switching (IPL0SOFT)
+ * 
+ * \author Pedro Martins
+ */
+void __ISR(_TIMER_2_VECTOR, IPL0SOFT) TIMER2_ISR(void)
+{
+    CLEAR_TMR2_IF;
 }
