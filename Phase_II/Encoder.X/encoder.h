@@ -31,21 +31,8 @@
 #define ENCODER_ERROR   1   //!< Return value in case of Error
 #define ENCODER_SUCCESS 0   //!< Return value in case of Success
 
-
-// ***************************************************************************
-// PHYSICAL CONSTRAINTS 
-#define WHEEL_DIAMETER          60  // mm
-#define WHEEL_RADIO             WHEEL_DIAMETER/2    // mm
-#define WHEEL_PERIMETER         189 // mm
-#define WHEEL_2_WHEEL_DIST      158 // mm
-
-#define MOTOR_GEAR_RATIO        75
-#define COUNTS_PER_REV          12
-#define QUADRATURE_CPR          4*COUNTS_PER_REV
-
-
-extern volatile int16_t pulse_count_L;
-extern volatile int16_t pulse_count_R;
+extern volatile int16_t pulse_count_L;      //!< Pulse Count for Left Wheel
+extern volatile int16_t pulse_count_R;      //!< Pulse Count for Right Wheel
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION

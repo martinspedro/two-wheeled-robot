@@ -15,6 +15,10 @@
 #include "encoder.h"
 
 
+
+// #define DEBUG               //!< If defined, debugs Encoder State throught LEDs
+// #define DEBUG_WITH_UART     //!< If defined, debugs Encoders State throught UART
+
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
@@ -46,23 +50,34 @@
 #define EXT_INT_FALLING_EDGE 0      //!< External Interrupt Edge Polarity sensible to Falling Edge Detection
 
 
-#define DEBUG
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/
-enum State {S0 = 0b00, S1 = 0b01, S2 = 0b10, S3 = 0b11};
+enum Quad_Enc_State     //!< Quadrature Encoder State Machine Possible States
+{
+    S0 = 0b00,          //!< Left Encoder Low,  Right Encoder Low
+    S1 = 0b01,          //!< Left Encoder Low,  Right Encoder High
+    S2 = 0b10,          //!< Left Encoder High, Right Encoder Low
+    S3 = 0b11           //!< Left Encoder High, Right Encoder High
+};
 
+/** \brief Quadrature Encoder LUT for Encoder signal A transitions
+ * LookUp Table used to actualize pulse count if Encoder Signal A toggles its value
+ */
+const int8_t QUAD_ENC_LUT_A[4] = {-1, +1, +1, -1};      
 
-volatile enum  State CS_left;
-volatile enum  State CS_right;
-
-volatile int16_t pulse_count_L = 0;
-volatile int16_t pulse_count_R = 0;
-
-const int8_t QUAD_ENC_LUT_A[4] = {-1, +1, +1, -1};
+/** \brief Quadrature Encoder LUT for Encoder signal A transitions
+ * LookUp Table used to actualize pulse count if Encoder Signal A toggles its value
+ */
 const int8_t QUAD_ENC_LUT_B[4] = {+1, -1, -1, +1};
 
 
+volatile enum  Quad_Enc_State CS_left;      //!< Left Encoder Current State Variable
+volatile enum  Quad_Enc_State CS_right;     //!< Right Encoder Current State Variable
+
+
+volatile int16_t pulse_count_L = 0;         
+volatile int16_t pulse_count_R = 0;
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -117,6 +132,8 @@ void reset_enc_pulse_cnt(void)
     pulse_count_R = 0;
     ENABLE_ENCODERS;
 }
+
+
 /** \brief ISR for Encoder A of Left Motor 
  * 
  * \pre    Global and External Interrupts must be configured and enabled
