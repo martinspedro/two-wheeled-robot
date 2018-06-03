@@ -15,10 +15,6 @@
 #include "encoder.h"
 
 
-
-// #define DEBUG               //!< If defined, debugs Encoder State throught LEDs
-// #define DEBUG_WITH_UART     //!< If defined, debugs Encoders State throught UART
-
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
@@ -53,7 +49,7 @@
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/
-enum Quad_Enc_State     //!< Quadrature Encoder State Machine Possible States
+enum Quad_Enc_State     //! Quadrature Encoder State Machine Possible States
 {
     S0 = 0b00,          //!< Left Encoder Low,  Right Encoder Low
     S1 = 0b01,          //!< Left Encoder Low,  Right Encoder High
