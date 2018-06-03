@@ -12,13 +12,14 @@
 // ***************************************************************************
 // Controller parameters
 #define	SAMPLING_T	10		// [ms]
-#define RPM_OUT = 1
-#define SP_MAX		((RPM_OUT * MOTOR_GEAR_RATIO * QUADRATURE_CPR * SAMPLING_T) / 60000)
+#define RPM_OUT     400
+#define SP_MAX		((QUADRATURE_CPR * MOTOR_GEAR_RATIO * RPM_OUT * SAMPLING_T) / 60000)
+
 #define INTEGRAL_CLIP	70				// Cliping value of the Integral component
 
 
-const signed int KP_num=1, KP_den=1;	// Propotional constant
-const signed int KI_num=0, KI_den=2;	// Integral constant
+const signed int KP_num=10, KP_den=10;	// Proportional constant
+const signed int KI_num=1, KI_den=15;	// Integral constant
 
 
 
@@ -57,30 +58,31 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
 	static int integralMLeft, integralMRight = 0;
 	static int cmdMLeft, cmdMRight;
 
-	error = -(pulse_count_L - MLEFT_SETPOINT_SPEED);
+	error = -((pulse_count_L * 100/SP_MAX) - MLEFT_SETPOINT_SPEED);
 	prop = (KP_num * error) / KP_den;
-	integralMLeft += error;
+	integralMLeft += (error * KI_num) / KI_den;;
 
 	integralMLeft = integralMLeft > INTEGRAL_CLIP ? INTEGRAL_CLIP : integralMLeft;
 	integralMLeft = integralMLeft < -INTEGRAL_CLIP ? -INTEGRAL_CLIP : integralMLeft;
 
-	cmdMLeft = prop + (integralMLeft * KI_num) / KI_den;
+	cmdMLeft = prop + (integralMLeft); 
 
 	cmdMLeft = cmdMLeft > 100 ? 100 : cmdMLeft;
 	cmdMLeft = cmdMLeft < -100 ? -100 : cmdMLeft;
 
-	error = -(pulse_count_R - MRIGHT_SETPOINT_SPEED);
+	error = -((pulse_count_R * 100 / SP_MAX) - MRIGHT_SETPOINT_SPEED);
 	prop= (KP_num * error) / KP_den;
-	integralMRight += error;
+	integralMRight += (error* KI_num) / KI_den;
 
 	integralMRight = integralMRight > INTEGRAL_CLIP ? INTEGRAL_CLIP : integralMRight;
 	integralMRight = integralMRight < -INTEGRAL_CLIP ? -INTEGRAL_CLIP : integralMRight;
 
-	cmdMRight = prop + (integralMRight * KI_num) / KI_den;
+	cmdMRight = prop + (integralMRight );
 
 	cmdMRight = cmdMRight > 100 ? 100 : cmdMRight;
 	cmdMRight = cmdMRight < -100 ? -100 : cmdMRight;
-
+    
+    
     /*
     if(aux == 1)
     {
@@ -108,6 +110,8 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
         reverse_fast_decay_right(-cmdMRight);
     }
 	
+    reset_enc_pulse_cnt();
+    
     CLEAR_TMR4_INT_FLAG;
    // LATDbits.LATD4 = 0;
 }

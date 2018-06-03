@@ -1,8 +1,10 @@
 /* 
- * File:   main.c
- * Author: martinspedro
- *
- * Created on May 28, 2018, 11:41 PM
+ * \file:  main.c
+ * \brief  Robot main program 
+ * 
+ * \author Pedro Martins
+ * \author Andre Gradim
+ * \date   Created on May 28, 2018, 11:41 PM
  */
 
 #include "../DEVCFGx_config_bits.h"
@@ -15,8 +17,9 @@
 
 #include "robot.h"
 
+#define DETECT_OBSTACLES
 
-#define StartState WAIT		// Start State
+#define StartState WAIT		//!< Robot Operation State Machine Initial State
 
 enum State {                // State Machine
 	WAIT,	
@@ -79,7 +82,7 @@ void main(void)
     ERROR_LED = 0;
     
     
-    while(!START_BUTTON);
+    //while(!START_BUTTON);
     
     put_string("ROBOT ENABLED!\n");
     
@@ -138,7 +141,6 @@ void main(void)
                     // if it is not clockwise is counterclockwise, then set to clockwise
                     current_byte_id = (current_byte_id == ID_ROTATE_CLOCKWISE) ? ID_ROTATE_COUNTERCLOCKWISE : ID_ROTATE_CLOCKWISE;
                     put_string("IS rotation\n");
-                          
                 }
                 
                 if(set_movement_direction(current_byte_id) == ROBOT_ERROR)
@@ -151,8 +153,11 @@ void main(void)
                 
                 //put_char( current_byte_id);
                 CS = RUNNING;
-                
-               // ENABLE_PID;
+                if(current_byte_id == ID_MOVE_FORWARD)
+                {
+                    ENABLE_PID;
+                }
+               
             break;
             
             case RUNNING:
@@ -166,24 +171,27 @@ void main(void)
                 put_uint16(distance_right); 
                 put_char('\n');
                 
-                if (distance_center <= MAX_CENTER_DISTANCE)
+                #ifdef DETECT_OBSTACLES
+                if(current_byte_id == ID_MOVE_FORWARD)
                 {
-                    put_string("OBSTACLE DETECTED! CENTER\n");
-                    OBSTACLE_DETECTED_LED = 1;        
-                    CS = STOPPING;
-                } else if(distance_left <= MAX_LEFT_DISTANCE) {
-                    put_string("OBSTACLE DETECTED! LEFT\n");
-                    OBSTACLE_DETECTED_LED = 1;        
-                    CS = STOPPING;
-                } else if(distance_right <= MAX_RIGHT_DISTANCE) {
-                    put_string("OBSTACLE DETECTED! RIGHT\n");
-                    OBSTACLE_DETECTED_LED = 1;        
-                    CS = STOPPING;
-                } else {   
-                    CS = RUNNING;
+                    if (distance_center <= MAX_CENTER_DISTANCE)
+                    {
+                        put_string("OBSTACLE DETECTED! CENTER\n");
+                        OBSTACLE_DETECTED_LED = 1;        
+                        CS = STOPPING;
+                    } else if(distance_left <= MAX_LEFT_DISTANCE) {
+                        put_string("OBSTACLE DETECTED! LEFT\n");
+                        OBSTACLE_DETECTED_LED = 1;        
+                        CS = STOPPING;
+                    } else if(distance_right <= MAX_RIGHT_DISTANCE) {
+                        put_string("OBSTACLE DETECTED! RIGHT\n");
+                        OBSTACLE_DETECTED_LED = 1;        
+                        CS = STOPPING;
+                    } else {   
+                        CS = RUNNING;
+                    }
                 }
-                
-                
+                #endif
                 break;
             case STOPPING:
                 put_string("STOPPING\n");

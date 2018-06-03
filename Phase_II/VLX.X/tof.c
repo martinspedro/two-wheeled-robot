@@ -700,7 +700,7 @@ int initSensor(uint8_t dev_add,int bLongRangeMode)
   // set 2.8V mode
   writeReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV, readReg(dev_add,VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV) | 0x01); // set bit 0
   
-  put_char('H');
+  //put_char('H');
   // Set I2C standard mode
   writeRegList(dev_add,ucI2CMode);
   stop_variable = readReg(dev_add,0x91);
@@ -910,14 +910,14 @@ void initAllSensors(){
     _LATD9 = 0;
 
     setAddress(DEFAULT_ADDRESS,CENTER);
-    put_char('A');
+    //put_char('A');
     
     _LATD9 = 1;
     
     int i;
     
     i = initSensor(CENTER, 1); // set long range mode (up to 2m)
-    put_char('B');
+    //put_char('B');
 	if (i !=1 ){
         put_string("ERROR in init center: ");
         put_uint8(i);
@@ -926,11 +926,11 @@ void initAllSensors(){
     i = 0;
     
     setAddress(DEFAULT_ADDRESS,LEFT);
-     put_char('C');
+    //put_char('C');
     _LATD8 = 1;
     
     i = initSensor(LEFT, 1); // set long range mode (up to 2m)
-     put_char('D');
+    //put_char('D');
 	if (i !=1 ){
         put_string("ERROR in init left: ");
         put_uint8(i);
@@ -939,9 +939,9 @@ void initAllSensors(){
     i = 0;
     
     setAddress(DEFAULT_ADDRESS,RIGHT);
-    put_char('E');
+    //put_char('E');
     i = initSensor(RIGHT, 1); // set long range mode (up to 2m)
-    put_char('F');
+    //put_char('F');
 	if (i !=1 ){
         put_string("ERROR in init right: ");
         put_uint8(i);
