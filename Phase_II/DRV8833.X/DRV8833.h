@@ -19,11 +19,12 @@
 #include "../PWM.X/pwm4.h"
 #include "../PWM.X/pwm5.h"
 
+
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define DRV8833_ERROR   0
-#define DRV8833_SUCCESS 1
+#define DRV8833_ERROR   1           //!< Return value macro that indicates an error has occurred
+#define DRV8833_SUCCESS 0           //!< Return value macro that indicates the operation terminated succesfully 
 
 #define nSLEEP LATDbits.LATD5       //!< DRV8833 Sleep pin (active Low, input)
 #define nFAULT PORTDbits.RD6        //!< DRV8833 Fault pin (active Low, output)
@@ -37,13 +38,12 @@
 #define MIN_DUTY 0          //!< Mininum duty-cycle to be applied to the motors
 #define MAX_DUTY 100        //!< Maximum duty-cycle to be applied to the motors
 
-#define DRV8833_ERROR_MESSAGE "DRV8833 ERROR!\n"
+#define DRV8833_ERROR_MESSAGE "DRV8833 ERROR!\n"    //!< DRV8833 Default Error Message
 
 
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
-
 
 /** \brief Configures DRV8833 Interface
  * 
@@ -83,7 +83,8 @@ uint8_t DRV8833_fault_condition(void);
  * 
  * \pre    DRV8833 is configured and enabled.
  * \param  None.
- * \return None.
+ * \return DRV8833_ERROR if any fault condition has occurred.
+ * \return DRV8833_SUCCESS if no fault condition has occurred.
  * 
  * \author Pedro Martins
  */
@@ -259,13 +260,55 @@ void reverse_fast_decay_right(uint8_t duty_cycle);
  */
 void reverse_slow_decay_right(uint8_t duty_cycle);
 
+/** \brief Configures both motors for forward movement using fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void move_forward_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 
-void move_forward(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+/** \brief Configures both motors for backwards movement using fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void move_backwards_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 
-void move_backwards(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+/** \brief Configures Clockwise rotation using fast decay mode
+ * 
+ * Configures left motor for forward movement and right motor for backwards movement
+ * Both motors are in fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void rotate_clockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 
-void rotate_clockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+/** \brief Configures Counter Clockwise rotation using fast decay mode
+ * 
+ * Configures left motor for backwards movement and right motor for forward movement
+ * Both motors are in fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void rotate_counterclockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 
-void rotate_counterclockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 #endif	/* MOTORS_H */
 

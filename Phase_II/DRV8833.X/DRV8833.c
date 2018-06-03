@@ -16,15 +16,18 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)
-#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM3_duty_cycle(duty_cycle)
-#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM5_duty_cycle(duty_cycle)
-#define MOTOR_RIGHT_B_SET_PWM(duty_cycle) set_PWM4_duty_cycle(duty_cycle)
+#define MOTOR_LEFT_A_SET_PWM(duty_cycle)  set_PWM2_duty_cycle(duty_cycle)   //!< Assign PWM2 Peripheral MOTOR1 A Control Signal
+#define MOTOR_LEFT_B_SET_PWM(duty_cycle)  set_PWM3_duty_cycle(duty_cycle)   //!< Assign PWM3 Peripheral MOTOR1 B Control Signal
+#define MOTOR_RIGHT_A_SET_PWM(duty_cycle) set_PWM5_duty_cycle(duty_cycle)   //!< Assign PWM5 Peripheral MOTOR2 A Control Signal
+#define MOTOR_RIGHT_B_SET_PWM(duty_cycle) set_PWM4_duty_cycle(duty_cycle)   //!< Assign PWM4 Peripheral MOTOR2 B Control Signal
 
-#define nSLEEP_TRIS TRISDbits.TRISD5
-#define nFAULT_TRIS TRISDbits.TRISD6
+#define nSLEEP_TRIS TRISDbits.TRISD5    //!< Assign TRIS Register bit for nSLEEP pin
+#define nFAULT_TRIS TRISDbits.TRISD6    //!< Assign TRIS Register bit for nSLEEP pin
 
+#define CONFIGURE_nSLEEP {nSLEEP_TRIS = 0;}         //!< Configure nSLEEP as output
+#define CONFIGURE_nFAULT {nFAULT_TRIS = 1;}         //!< Configure nFAULT as input
 
+#define ENABLE_WPU_nFAULT {CNPUEbits.CNPUE15 = 1;}  //!< Enable Weak Pull Up on nFault Pin
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -35,9 +38,9 @@ void configure_DRV8833_interface(void)
     DISABLE_DRV8833;
 
     // Configure I/O
-    nSLEEP_TRIS = 0;   // nSLEEP (Output)
-    nFAULT_TRIS = 1;   // nFAULT (Input)
-   
+    CONFIGURE_nSLEEP;   
+    CONFIGURE_nFAULT;   
+    ENABLE_WPU_nFAULT;
     
     // Configure current monitoring
     adc_peripheral_init();
@@ -53,16 +56,13 @@ void configure_DRV8833_interface(void)
     output_compare_4_init();
     output_compare_5_init();
     
-    // Weak PULL UP on nFault
-    CNPUEbits.CNPUE15 = 1;  
-    
     // Set all motor to open state
     open_all_motors();
 }
 
 void enable_DRV8833(void)
 {
-    ENABLE_DRV8833;     // first because of the delay time required to init internal states
+    ENABLE_DRV8833;     // first instruction. Internal DRV8833 Logic requires some time to init
     
     ENABLE_ADC;
             
@@ -80,7 +80,7 @@ uint8_t DRV8833_fault_condition(void)
     {
         open_all_motors();
     }
-    return (nFAULT);
+    return !(nFAULT);
 }
 
 
@@ -244,25 +244,25 @@ void reverse_slow_decay_right(uint8_t duty_cycle)
 
 // <editor-fold defaultstate="collapsed" desc="MOTORS DIRECTION CONTROLLER">
 
-void move_forward(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+void move_forward_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
     forward_fast_decay_left(duty_cycle_left);
     forward_fast_decay_right(duty_cycle_right);
 }
 
-void move_backwards(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+void move_backwards_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
     reverse_fast_decay_left(duty_cycle_left);
     reverse_fast_decay_right(duty_cycle_right);
 }
 
-void rotate_clockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+void rotate_clockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
     forward_fast_decay_left(duty_cycle_left);
     reverse_fast_decay_right(duty_cycle_right);
 }
 
-void rotate_counterclockwise(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+void rotate_counterclockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
     reverse_fast_decay_left(duty_cycle_left);
     forward_fast_decay_right(duty_cycle_right);
