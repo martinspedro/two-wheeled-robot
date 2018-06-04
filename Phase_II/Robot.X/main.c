@@ -49,6 +49,7 @@ uint8_t is_rotation = 0;                //!< Flag to indicate is current instruc
 
 enum Robot_State CS = StartState;       //!< Current State of Robot State Machine 
 
+int mleft_setpoint, mright_setpoint;
     
 
 /*******************************************************************************
@@ -86,6 +87,10 @@ void main(void)
     ENABLE_UART1_ALL_INTERRUPTS;
     ENABLE_ENCODERS;
     Enable_Global_Interrupts();
+
+
+    
+
     
     initAllSensors();                   // Init DIstance Sensors (requires UART)
     
@@ -102,12 +107,31 @@ void main(void)
     ERROR_LED = 0;
     
     
+    
     //while(!START_BUTTON);             // Wait for Start order
     
     put_string("ROBOT ACTIVE!\n");
     
-    while(!STOP_BUTTON)
-    {
+    init_encoder_state();   // Initialize encoder state
+    ENABLE_PID;
+    uint8_t last_stop;
+    
+    int enc_left, enc_right;
+    
+    while(1)
+    {   
+        /*
+        readEncoders(&enc_left, &enc_right);
+        put_uint16(enc_left);
+        put_char('\t');
+        put_uint16(enc_right);
+        put_char('\n');*/
+
+        if(STOP_BUTTON && CS != WAIT){
+            CS=STOPPING;
+        }
+        last_stop = STOP_BUTTON;
+        
         // <editor-fold defaultstate="collapsed" desc="PARSE USER REQUESTS">
         if( get_char(&received_byte_id) == UART_SUCCESS )
         {
@@ -152,8 +176,8 @@ void main(void)
                 // <editor-fold defaultstate="collapsed" desc="PROCESS USER REQUESTS">
                 while( get_char(&received_byte_arg) == UART_SUCCESS);   // Wait for Instruction Arguments
                 
-                init_encoder_state();   // Initialize encoder state
-                reset_enc_pulse_cnt();  // Reset all encoder pulse counters
+                // init_encoder_state();   // Initialize encoder state
+                //reset_enc_pulse_cnt();  // Reset all encoder pulse counters
                 
                 // dFilter rotations from movement
                 is_rotation = (uint8_t)((current_byte_id & 0x02) >> 1);
@@ -177,11 +201,11 @@ void main(void)
                     put_string("ERROR");
                 }
                 
-                // Enable PID control algorithm if it is a movement
+                /*// Enable PID control algorithm if it is a movement
                 if(current_byte_id == ID_MOVE_FORWARD)
                 {
                     ENABLE_PID;
-                }
+                }*/
                 
                 CS = RUNNING;
                
@@ -191,22 +215,17 @@ void main(void)
             
             case RUNNING:
                 // <editor-fold defaultstate="collapsed" desc="EXECUTING USER REQUESTS">
-                //put_string("RUNNING\n");
+                // put_string("RUNNING\n");
                 
                 // Read Distance Sensors
-                tofReadDistanceAllSensors(&distance_left, &distance_center, &distance_right);
-                put_uint16(distance_left); 
-                put_string(" - ");
-                put_uint16(distance_center); 
-                put_string(" - ");
-                put_uint16(distance_right); 
-                put_char('\n');
                 
                 /* If obstacle detection is enabled and the robot is moving forward, 
                    enable obstacle detection and emergency stop conditions */
-                #ifdef DETECT_OBSTACLES
-                if(current_byte_id == ID_MOVE_FORWARD)
+                
+                if(current_byte_id == ID_MOVE_FORWARD && tofReadDistanceAllSensors(&distance_left, &distance_center, &distance_right) == SUCCESS)
                 {
+                    
+                    #ifdef DETECT_OBSTACLES
                     if (distance_center <= MAX_CENTER_DISTANCE)
                     {
                         put_string("OBSTACLE DETECTED! CENTER\n");
@@ -223,8 +242,16 @@ void main(void)
                     } else {   
                         CS = RUNNING;
                     }
+                    #endif
                 }
-                #endif
+                
+
+                put_uint16(distance_left); 
+                put_string(" - ");
+                put_uint16(distance_center); 
+                put_string(" - ");
+                put_uint16(distance_right); 
+                put_char('\n');
             // </editor-fold>
             break;
             
@@ -232,18 +259,28 @@ void main(void)
             case STOPPING:
                 // <editor-fold defaultstate="collapsed" desc="STOP ROBOT MOVEMENT">
                 put_string("STOPPING\n");
+                
+                mleft_setpoint = 0;
+                mright_setpoint = 0;
                 DISABLE_PID;
                 brake_all_motors();
+                ENABLE_PID;
                 CS = WAIT;
             // </editor-fold>
-            break;    
+            break;   
+            case WAIT:
+                CS = WAIT;
+            break;
         }
         
     }
     
     // stop robot if STOP button is pressed
-    brake_all_motors();
+    mleft_setpoint = 0;
+    mright_setpoint = 0;
+    //brake_all_motors();
     put_string("STOPPED!\n");
+    while(1);
     
 }
 

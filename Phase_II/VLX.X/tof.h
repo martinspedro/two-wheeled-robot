@@ -19,6 +19,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#define ERROR_TIMEOUT -1
+#define ERROR_GET_DISTANCE -2
+#define SUCCESS 0
+
+
 //
 // Read the model and revision of the tof sensor
 //

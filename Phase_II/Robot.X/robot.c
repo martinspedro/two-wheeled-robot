@@ -14,7 +14,7 @@
 /*******************************************************************************
  *                          MACROS DEFINITION
  ******************************************************************************/
-#define	SAMPLING_T	10		//!< Sampling Time for PID routine (ms)
+#define	SAMPLING_T	10		//!< Sampling Time for PID routine (ms) 
 #define RPM_OUT     400     //!< Maximum number of Rotations Per Minute (RPM) of motor
 
 /** \brief Maximum value for the desired setpoint
@@ -23,17 +23,18 @@
  */
 #define SP_MAX		((QUADRATURE_CPR * MOTOR_GEAR_RATIO * RPM_OUT * SAMPLING_T) / 60000)
 
-#define INTEGRAL_CLIP 80    //!< Cliping Limit for the Integral component
-
+#define INTEGRAL_CLIP 60    //!< Cliping Limit for the Integral component
 
 /*******************************************************************************
  *                       CLASS VARIABLES DEFINITION
  ******************************************************************************/
-const signed int KP_num=10;     //!< Numerator of Proportional Constant for PID Controller
-const signed int KP_den=10;     //!< Denominator of Proportional Constant for PID Controller
-const signed int KI_num=1;      //!< Numerator of Integral Constant for PID Controller
-const signed int KI_den=15;     //!< Denominator of Integral Constant for PID Controller
+const int KP_num=2;     //!< Numerator of Proportional Constant for PID Controller
+const int KP_den=1;     //!< Denominator of Proportional Constant for PID Controller
+const int KI_num=0;      //!< Numerator of Integral Constant for PID Controller
+const int KI_den=100;     //!< Denominator of Integral Constant for PID Controller
 
+
+extern int mleft_setpoint, mright_setpoint;
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -41,6 +42,8 @@ const signed int KI_den=15;     //!< Denominator of Integral Constant for PID Co
 
 uint8_t set_movement_direction(uint8_t id)
 {
+    //mleft_setpoint = 0;
+    //mright_setpoint = 0;
     // check if ID is valid
     if( (id < ID_MOVE_FORWARD) || (id > ID_ROTATE_COUNTERCLOCKWISE) )
         return ROBOT_ERROR;
@@ -48,18 +51,29 @@ uint8_t set_movement_direction(uint8_t id)
     switch(id)
     {
         case ID_MOVE_FORWARD:
-            move_forward_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
+            mleft_setpoint  =   MLEFT_SETPOINT_SPEED;
+            mright_setpoint =   MRIGHT_SETPOINT_SPEED;
+            //move_forward_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
             break;
         case ID_MOVE_BACKWARDS:
-            move_backwards_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
+            mleft_setpoint  = - MLEFT_SETPOINT_SPEED;
+            mright_setpoint = - MRIGHT_SETPOINT_SPEED;
+            //move_backwards_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
             break;
         case ID_ROTATE_CLOCKWISE:
-            rotate_clockwise_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
+            mleft_setpoint  =   MLEFT_SETPOINT_SPEED;
+            mright_setpoint = - MRIGHT_SETPOINT_SPEED;
+            //rotate_clockwise_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
             break;
         case ID_ROTATE_COUNTERCLOCKWISE:
-            rotate_counterclockwise_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
+            mleft_setpoint  = - MLEFT_SETPOINT_SPEED;
+            mright_setpoint =   MRIGHT_SETPOINT_SPEED;
+            //rotate_counterclockwise_fast_decay(MLEFT_SETPOINT_SPEED, MRIGHT_SETPOINT_SPEED);
             break;
         default:
+            
+            mleft_setpoint  =  0;
+            mright_setpoint =  0;
             return ROBOT_ERROR;
     }
     
@@ -85,18 +99,34 @@ uint8_t set_movement_direction(uint8_t id)
  * \author Andre Gradim
  * \author J.L.Azevedo (23/10/2014)
  */
+
 void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
 {
     LED3 = 1;
     
-    static int error, prop = 0;
-	static int integralMLeft, integralMRight = 0;
-	static int cmdMLeft, cmdMRight;
-
+    signed int error= 0, prop = 0;
+	static int integralMLeft = 0, integralMRight = 0;
+    int cmdMLeft, cmdMRight;
+      
+    mleft_setpoint = (mleft_setpoint >  100)?( 100): mleft_setpoint;
+    mleft_setpoint = (mleft_setpoint < -100)?(-100): mleft_setpoint;
+   
+    mright_setpoint = (mright_setpoint >  100)?( 100): mright_setpoint;
+    mright_setpoint = (mright_setpoint < -100)?(-100): mright_setpoint;
+   
+    //enc_left = pulse_count_L;
+    //enc_right = pulse_count_R;
+    int enc_left, enc_right;
+    readEncoders(&enc_left, &enc_right);
+    // reset pulse count for encoders
+    reset_enc_pulse_cnt();
+    
+    
     /* Left Motor PID */
-	error = -((pulse_count_L * 100/SP_MAX) - MLEFT_SETPOINT_SPEED);
+    //error = 0;
+	error = (mleft_setpoint ) - (enc_left); //* SP_MAX / 100
 	prop = (KP_num * error) / KP_den;
-	integralMLeft += (error * KI_num) / KI_den;
+	integralMLeft += (KI_num * error)/KI_den ;
 
     // Clip Integral values
 	integralMLeft = integralMLeft > INTEGRAL_CLIP ? INTEGRAL_CLIP : integralMLeft;
@@ -109,23 +139,29 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
 	cmdMLeft = cmdMLeft < -100 ? -100 : cmdMLeft;
 
     /* Right Motor PID */
-	error = -((pulse_count_R * 100 / SP_MAX) - MRIGHT_SETPOINT_SPEED);
+	error = (mright_setpoint) - (enc_right); //* SP_MAX / 100
 	prop= (KP_num * error) / KP_den;
-	integralMRight += (error* KI_num) / KI_den;
+	integralMRight += (KI_num * error)/KI_den ;
 
     // Clip Integral values
 	integralMRight = integralMRight > INTEGRAL_CLIP ? INTEGRAL_CLIP : integralMRight;
 	integralMRight = integralMRight < -INTEGRAL_CLIP ? -INTEGRAL_CLIP : integralMRight;
 
-	cmdMRight = prop + (integralMRight );
+	cmdMRight = prop + (integralMRight);
 
     // Truncate PWM values
 	cmdMRight = cmdMRight > 100 ? 100 : cmdMRight;
 	cmdMRight = cmdMRight < -100 ? -100 : cmdMRight;
     
     
+    
+    
     // Actuate on motors. If PWM is negative use |PWM| and change direction 
-    if(cmdMLeft > 0)
+    if(cmdMLeft  == 0){
+        brake_left_motor();
+        
+    }
+    else if(cmdMLeft > 0)
     {
         forward_fast_decay_left(cmdMLeft);
     }
@@ -134,7 +170,13 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
         reverse_fast_decay_left(-cmdMLeft);
     }
     
-    if(cmdMRight > 0)
+    
+    
+    if(cmdMRight == 0){
+        brake_right_motor();
+        
+    }
+    else if(cmdMRight> 0)
     {
         forward_fast_decay_right(cmdMRight);
     }
@@ -144,9 +186,8 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
     }
 	
     
-    // reset pulse count for encoders
-    reset_enc_pulse_cnt();
     
+    LED3 = 0;
     
     CLEAR_PID_IF;
 }

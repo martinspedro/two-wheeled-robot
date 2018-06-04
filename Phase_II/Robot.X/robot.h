@@ -48,8 +48,8 @@
 
 #define MAX_ANGLE 180            //!< Maximum rotation angle in one direction
 
-#define MLEFT_SETPOINT_SPEED  20    //!< Left Wheel Velocity Setpoint  (in function of PWM %)
-#define MRIGHT_SETPOINT_SPEED 20    //!< Right Wheek Velocity Setpoint (in function of PWM %)
+#define MLEFT_SETPOINT_SPEED  50    //!< Left Wheel Velocity Setpoint  (in function of PWM %)
+#define MRIGHT_SETPOINT_SPEED 50    //!< Right Wheek Velocity Setpoint (in function of PWM %)
 
 #define MAX_LEFT_DISTANCE   50      //!< Minimum obstacle distance (mm) for Left Obstacle Sensor
 #define MAX_CENTER_DISTANCE 75      //!< Minimum obstacle distance (mm) for Center Obstacle Sensor

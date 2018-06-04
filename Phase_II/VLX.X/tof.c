@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <proc/ppic32mx.h>
 #include "../I2C.X/i2c2.h"
+#include "tof.h"
 
 
 #define DEFAULT_ADDRESS 0x29
@@ -775,7 +776,7 @@ uint16_t readRangeContinuousMillimeters(uint8_t dev_add)
     delay5ms();
     if (iTimeout > 50)
     {
-      return -1;
+      return ERROR_TIMEOUT;
     }
   }
 
@@ -812,7 +813,7 @@ int tofReadDistance(uint8_t dev_add)
     delay5ms();
     if (iTimeout > 50)
     {
-      return -1;
+      return ERROR_TIMEOUT;
     }
   }
 
@@ -891,28 +892,33 @@ int tofReadDistanceAllSensors(uint16_t* dev_left, uint16_t* dev_center, uint16_t
     delay5ms();
     if (iTimeout > 50)
     {
-      return -1;
+      return ERROR_TIMEOUT;
     }
   }
 
   *dev_left = readRangeContinuousMillimeters(dev_add_list[0]);
   *dev_center = readRangeContinuousMillimeters(dev_add_list[1]);
   *dev_right = readRangeContinuousMillimeters(dev_add_list[2]);
-  return 0;
+  
+  if(dev_left == 0 | dev_center == 0 | dev_right == 0){
+      return ERROR_GET_DISTANCE;
+  }
+  return SUCCESS;
 
 } /* tofReadDistance() */
-
+#include "../Robot.X/IO.h"
 void initAllSensors(){
-    _TRISD8 = 0;
-    _TRISD9 = 0;
+    EXTRA_1_OUTPUT
+    EXTRA_2_OUTPUT
   
-    _LATD8 = 0;
-    _LATD9 = 0;
+    
+    EXTRA_1_LAT = 0;
+    EXTRA_2_LAT = 0;
 
     setAddress(DEFAULT_ADDRESS,CENTER);
     //put_char('A');
     
-    _LATD9 = 1;
+    EXTRA_2_LAT = 1;
     
     int i;
     
@@ -927,7 +933,7 @@ void initAllSensors(){
     
     setAddress(DEFAULT_ADDRESS,LEFT);
     //put_char('C');
-    _LATD8 = 1;
+    EXTRA_1_LAT = 1;
     
     i = initSensor(LEFT, 1); // set long range mode (up to 2m)
     //put_char('D');
@@ -948,8 +954,8 @@ void initAllSensors(){
 	//	return 1; // problem - quit
 	}
     i = 0;
-    _TRISD8 = 1;
-    _TRISD9 = 1;
+    EXTRA_1_INPUT
+    EXTRA_2_INPUT
     
 }
 
