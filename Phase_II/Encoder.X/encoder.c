@@ -33,13 +33,13 @@
 #define ENCODER_RIGHT_A  PORTAbits.RA14     //!< I/O Pin for A Encoder of Right Wheel 
 #define ENCODER_RIGHT_B  PORTAbits.RA15     //!< I/O Pin for B Encoder of Right Wheel 
 
-#define EXT_INT1_IPL  6     //!< External Interrupt Pin 1 Priority Level     
+#define EXT_INT1_IPL  5     //!< External Interrupt Pin 1 Priority Level     
 #define EXT_INT1_ISPL 0     //!< External Interrupt Pin 1 Sub-Priority Level 
-#define EXT_INT2_IPL  6     //!< External Interrupt Pin 2 Priority Level     
+#define EXT_INT2_IPL  5     //!< External Interrupt Pin 2 Priority Level     
 #define EXT_INT2_ISPL 0     //!< External Interrupt Pin 2 Sub-Priority Level 
-#define EXT_INT3_IPL  6     //!< External Interrupt Pin 3 Priority Level     
+#define EXT_INT3_IPL  5     //!< External Interrupt Pin 3 Priority Level     
 #define EXT_INT3_ISPL 0     //!< External Interrupt Pin 3 Sub-Priority Level 
-#define EXT_INT4_IPL  6     //!< External Interrupt Pin 4 Priority Level     
+#define EXT_INT4_IPL  5     //!< External Interrupt Pin 4 Priority Level     
 #define EXT_INT4_ISPL 0     //!< External Interrupt Pin 4 Sub-Priority Level 
 
 #define EXT_INT_RISING_EDGE  1      //!< External Interrupt Edge Polarity sensible to Rising Edge Detection 
@@ -72,8 +72,8 @@ volatile enum  Quad_Enc_State CS_left;      //!< Left Encoder Current State Vari
 volatile enum  Quad_Enc_State CS_right;     //!< Right Encoder Current State Variable
 
 
-volatile int16_t pulse_count_L = 0;         
-volatile int16_t pulse_count_R = 0;
+volatile int16_t pulse_count_L;         
+volatile int16_t pulse_count_R;
 
 /*******************************************************************************
  *                         CLASS METHODS
@@ -146,7 +146,7 @@ void reset_enc_pulse_cnt(void)
  * 
  * \author Pedro Martins
  */
-void __ISR(_EXTERNAL_1_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_A(void)
+void __ISR(_EXTERNAL_1_VECTOR, IPL5SOFT) LEFT_MOTOR_ENCODER_A(void)
 {
     #ifdef DEBUG
         LATBbits.LATB4 = 1;
@@ -188,7 +188,7 @@ void __ISR(_EXTERNAL_1_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_A(void)
  * 
  * \author Pedro Martins
  */
-void __ISR(_EXTERNAL_2_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_B(void)
+void __ISR(_EXTERNAL_2_VECTOR, IPL5SOFT) LEFT_MOTOR_ENCODER_B(void)
 {
     #ifdef DEBUG
         LATBbits.LATB4 = 1;
@@ -230,7 +230,7 @@ void __ISR(_EXTERNAL_2_VECTOR, IPL6SOFT) LEFT_MOTOR_ENCODER_B(void)
  * 
  * \author Pedro Martins
  */
-void __ISR(_EXTERNAL_3_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_A(void)
+void __ISR(_EXTERNAL_3_VECTOR, IPL5SOFT) RIGHT_MOTOR_ENCODER_A(void)
 {
     #ifdef DEBUG
         LATBbits.LATB4 = 1;
@@ -239,7 +239,7 @@ void __ISR(_EXTERNAL_3_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_A(void)
     #endif
 
     CS_right = (INTCONbits.INT3EP == EXT_INT_RISING_EDGE) ? (CS_right | 0b10) : (CS_right & 0b01);
-    pulse_count_R += QUAD_ENC_LUT_A[ (INTCONbits.INT3EP << 1) + ENCODER_LEFT_B ];
+    pulse_count_R += QUAD_ENC_LUT_A[ (INTCONbits.INT3EP << 1) + ENCODER_RIGHT_B ];
     
     #ifdef DEBUG_WITH_UART
         put_char( (CS_right & 0x01) + 0x30);
@@ -272,7 +272,7 @@ void __ISR(_EXTERNAL_3_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_A(void)
  * 
  * \author Pedro Martins
  */
-void __ISR(_EXTERNAL_4_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_B(void)
+void __ISR(_EXTERNAL_4_VECTOR, IPL5SOFT) RIGHT_MOTOR_ENCODER_B(void)
 {
     #ifdef DEBUG
         LATBbits.LATB4 = 1;
@@ -281,7 +281,7 @@ void __ISR(_EXTERNAL_4_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_B(void)
     #endif
     
     CS_right = (INTCONbits.INT4EP == EXT_INT_RISING_EDGE) ? (CS_right | 0b01) : (CS_right & 0b10);
-    pulse_count_R += QUAD_ENC_LUT_B[ (INTCONbits.INT4EP << 1) + ENCODER_LEFT_A ];
+    pulse_count_R += QUAD_ENC_LUT_B[ (INTCONbits.INT4EP << 1) + ENCODER_RIGHT_A ];
    
     #ifdef DEBUG_WITH_UART
         put_char( (CS_right & 0x01) + 0x30);
@@ -295,4 +295,15 @@ void __ISR(_EXTERNAL_4_VECTOR, IPL6SOFT) RIGHT_MOTOR_ENCODER_B(void)
     #ifdef DEBUG
         LATBbits.LATB4 = 0;
     #endif
+}
+
+
+void readEncoders(int *encLeft, int *encRight)
+{
+   DISABLE_ENCODERS
+   *encLeft = pulse_count_L;
+   *encRight = pulse_count_R;
+   //pulse_count_L = 0;
+   //pulse_count_R = 0;
+   ENABLE_ENCODERS
 }
