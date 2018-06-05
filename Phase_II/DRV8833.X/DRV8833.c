@@ -244,6 +244,7 @@ void reverse_slow_decay_right(uint8_t duty_cycle)
 
 // <editor-fold defaultstate="collapsed" desc="MOTORS DIRECTION CONTROLLER">
 
+/* FAST DECAY */
 void move_forward_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
 {
     forward_fast_decay_left(duty_cycle_left);
@@ -266,6 +267,32 @@ void rotate_counterclockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cy
 {
     reverse_fast_decay_left(duty_cycle_left);
     forward_fast_decay_right(duty_cycle_right);
+}
+
+
+/* SLOW DECAY */
+void move_forward_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    forward_slow_decay_left(duty_cycle_left);
+    forward_slow_decay_right(duty_cycle_right);
+}
+
+void move_backwards_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    reverse_slow_decay_left(duty_cycle_left);
+    reverse_slow_decay_right(duty_cycle_right);
+}
+
+void rotate_clockwise_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    forward_slow_decay_left(duty_cycle_left);
+    reverse_slow_decay_right(duty_cycle_right);
+}
+
+void rotate_counterclockwise_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right)
+{
+    reverse_slow_decay_left(duty_cycle_left);
+    forward_slow_decay_right(duty_cycle_right);
 }
 
 // </editor-fold>
