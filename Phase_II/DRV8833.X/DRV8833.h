@@ -310,5 +310,56 @@ void rotate_clockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_rig
  */
 void rotate_counterclockwise_fast_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
 
+
+/** \brief Configures both motors for forward movement using slow decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void move_forward_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+/** \brief Configures both motors for backwards movement using slow decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void move_backwards_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+/** \brief Configures Clockwise rotation using slow decay mode
+ * 
+ * Configures left motor for forward movement and right motor for backwards movement
+ * Both motors are in fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void rotate_clockwise_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
+/** \brief Configures Counter Clockwise rotation using slow decay mode
+ * 
+ * Configures left motor for backwards movement and right motor for forward movement
+ * Both motors are in fast decay mode
+ * 
+ * \pre    DRV8833 must be configured and enabled.
+ * \param  duty_cycle_left  Desired motor dutycycle \f$\in [0, 100]\f$
+ * \param  duty_cycle_right Desired motor dutycycle \f$\in [0, 100]\f$
+ * \return None.
+ * 
+ * \author Pedro Martins
+ */
+void rotate_counterclockwise_slow_decay(uint8_t duty_cycle_left, uint8_t duty_cycle_right);
+
 #endif	/* MOTORS_H */
 
