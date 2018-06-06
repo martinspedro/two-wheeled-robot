@@ -94,7 +94,8 @@ void main(void)
     
     initAllSensors();                   // Init DIstance Sensors (requires UART)
     
-    
+    put_string("Init done! Waiting START button...\n");
+    while(!START_BUTTON);             // Wait for Start order
     /* START-UP SEQUENCE */
     put_string("Awaiting handshake... ");
     manage_initial_handshake();
@@ -108,7 +109,7 @@ void main(void)
     
     
     
-    //while(!START_BUTTON);             // Wait for Start order
+    
     
     put_string("ROBOT ACTIVE!\n");
     
