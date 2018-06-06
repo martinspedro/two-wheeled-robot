@@ -23,6 +23,7 @@
 #define ERROR_GET_DISTANCE -2
 #define SUCCESS 0
 
+#define DEFAULT_ADDRESS 0x29
 
 //
 // Read the model and revision of the tof sensor

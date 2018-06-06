@@ -9,6 +9,7 @@
  */
 
 #include "robot.h"
+#include "../VLX.X/tof.h"
 
 
 /*******************************************************************************
@@ -191,3 +192,135 @@ void __ISR(_TIMER_4_VECTOR, IPL6SOFT) PID_ISR(void)
     
     CLEAR_PID_IF;
 }
+
+/** \brief Initialization of all distance sensors
+ * 
+ * \pre     I2C, UART must be active
+ * \pre     3 VL53L0X must be connect to the bus
+ * \pre     XSHUT pin from 2 of the VL53L0X must be connect to EXTRA_1 and EXTRA_2 pins
+ * 
+ * \param  None.
+ * \return None.
+ * 
+ * 
+ * \author Andre Gradim
+ * \author Pedro Martins
+ */
+void initAllSensors(){
+    EXTRA_1_OUTPUT
+    EXTRA_2_OUTPUT
+  
+    //set sensors in shutdown mode ( 0 -> shutdown; 1 -> wake)
+    EXTRA_1_LAT = 0;
+    EXTRA_2_LAT = 0;
+
+    //Change address from DEFAULT to CENTER
+    setAddress(DEFAULT_ADDRESS,CENTER);
+    
+    //Wake LEFT sensor from shutdown
+    EXTRA_2_LAT = 1;
+    
+    int i;
+    
+    //Initialize CENTER sensor while LEFT is booting
+    i = initSensor(CENTER, 1); // set long range mode (up to 2m)
+    if (i !=1 ){
+        put_string("ERROR in init center: ");
+        put_uint8(i);
+	}
+    i = 0;
+    
+    //Change address from DEFAULT to CENTER
+    setAddress(DEFAULT_ADDRESS,LEFT);
+
+    //Wake RIGHT sensor from shutdown
+    EXTRA_1_LAT = 1;
+    
+    
+    //Initialize LEFT sensor while RIGHT is booting
+    i = initSensor(LEFT, 1); // set long range mode (up to 2m)
+    
+	if (i !=1 ){
+        put_string("ERROR in init left: ");
+        put_uint8(i);
+	}
+    i = 0;
+    
+    //Change address from DEFAULT to CENTER
+    setAddress(DEFAULT_ADDRESS,RIGHT);
+    
+    //Initialize RIGHT sensor
+    i = initSensor(RIGHT, 1); // set long range mode (up to 2m)
+    
+	if (i !=1 ){
+        put_string("ERROR in init right: ");
+        put_uint8(i);
+	}
+
+    //Set EXTRA pins as INPUTs
+    EXTRA_1_INPUT
+    EXTRA_2_INPUT    
+}
+
+/** \brief Perform measurements of the 3 sensors
+ * 
+ * \pre     I2C, UART must be active
+ * \pre     3 VL53L0X must be connect to the bus with LEFT,CENTER and RIGHT address
+ * 
+ * \param  dev_left     Pointer to variable to save data from left sensor
+ * \param  dev_center   Pointer to variable to save data from center sensor
+ * \param  dev_right    Pointer to variable to save data from right sensor
+ * \return SUCCESS on success 
+ * \return ERROR_GET_DISTANCE when error occured in reading distance
+ * \return ERROR_TIMEOUT when a timeout occurs in communications
+ * 
+ * 
+ * \author Andre Gradim
+ * \author Pedro Martins
+ */
+int tofReadDistanceAllSensors(uint16_t* dev_left, uint16_t* dev_center, uint16_t* dev_right)
+{
+  int iTimeout;
+  uint8_t dev_add_list[] = {LEFT, CENTER, RIGHT};
+  uint8_t dev_add;
+
+  uint8_t temp = 0;
+  for( temp = 0; temp < 3; temp++){
+      dev_add = dev_add_list[temp]; 
+      measure_request(dev_add);
+  }
+  
+  // "Wait until start bit has been cleared"
+  iTimeout = 0;
+  temp = 0;
+  int val;
+  while (1)
+  {
+    val = 0;
+    for( temp = 0; temp < 3; temp++){
+      dev_add = dev_add_list[temp];
+      val += sensor_measure_ready(dev_add);
+    }
+    if(val == 0){
+      break;
+    }
+    
+    iTimeout++;
+    delay5ms();
+    if (iTimeout > 50)
+    {
+      return ERROR_TIMEOUT;
+    }
+  }
+
+  *dev_left = readRangeContinuousMillimeters(dev_add_list[0]);
+  *dev_center = readRangeContinuousMillimeters(dev_add_list[1]);
+  *dev_right = readRangeContinuousMillimeters(dev_add_list[2]);
+  
+  if(dev_left == 0 | dev_center == 0 | dev_right == 0){
+      return ERROR_GET_DISTANCE;
+  }
+  return SUCCESS;
+
+} 
+

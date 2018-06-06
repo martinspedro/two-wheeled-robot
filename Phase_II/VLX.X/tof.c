@@ -24,12 +24,6 @@
 #include "tof.h"
 
 
-#define DEFAULT_ADDRESS 0x29
-
-#define LEFT 0x30
-#define CENTER 0x32
-#define RIGHT 0x34
-
 
 
 static unsigned char stop_variable;
@@ -849,116 +843,21 @@ void setAddress(uint8_t dev_add,uint8_t new_addr)
   writeByte(dev_add,I2C_SLAVE_DEVICE_ADDRESS, new_addr & 0x7F);
 }
 
-//
-// Read the current distance in mm
-//
-int tofReadDistanceAllSensors(uint16_t* dev_left, uint16_t* dev_center, uint16_t* dev_right)
-{
-  int iTimeout;
-  uint8_t dev_add_list[] = {LEFT, CENTER, RIGHT};
-  uint8_t dev_add;
+void measure_request(uint8_t dev_add){
+    writeReg(dev_add,0x80, 0x01);
+    writeReg(dev_add,0xFF, 0x01);
+    writeReg(dev_add,0x00, 0x00);
+    writeReg(dev_add,0x91, stop_variable);
+    writeReg(dev_add,0x00, 0x01);
+    writeReg(dev_add,0xFF, 0x00);
+    writeReg(dev_add,0x80, 0x00);
 
-  uint8_t temp = 0;
-  for( temp = 0; temp < 3; temp++){
-      dev_add = dev_add_list[temp]; 
-      writeReg(dev_add,0x80, 0x01);
-      writeReg(dev_add,0xFF, 0x01);
-      writeReg(dev_add,0x00, 0x00);
-      writeReg(dev_add,0x91, stop_variable);
-      writeReg(dev_add,0x00, 0x01);
-      writeReg(dev_add,0xFF, 0x00);
-      writeReg(dev_add,0x80, 0x00);
+    writeReg(dev_add,SYSRANGE_START, 0x01);
+}
 
-      writeReg(dev_add,SYSRANGE_START, 0x01);
-  }
-  //readReg(dev_add_list[,SYSRANGE_START) & 0x01
-  
-  // "Wait until start bit has been cleared"
-  iTimeout = 0;
-  temp = 0;
-  int val;
-  while (1)
-  {
-    val = 0;
-    for( temp = 0; temp < 3; temp++){
-      dev_add = dev_add_list[temp];
-      val += readReg(dev_add,SYSRANGE_START) & 0x01;
-    }
-    if(val == 0){
-      break;
-    }
-    
-    iTimeout++;
-    delay5ms();
-    if (iTimeout > 50)
-    {
-      return ERROR_TIMEOUT;
-    }
-  }
-
-  *dev_left = readRangeContinuousMillimeters(dev_add_list[0]);
-  *dev_center = readRangeContinuousMillimeters(dev_add_list[1]);
-  *dev_right = readRangeContinuousMillimeters(dev_add_list[2]);
-  
-  if(dev_left == 0 | dev_center == 0 | dev_right == 0){
-      return ERROR_GET_DISTANCE;
-  }
-  return SUCCESS;
-
-} /* tofReadDistance() */
-#include "../Robot.X/IO.h"
-void initAllSensors(){
-    EXTRA_1_OUTPUT
-    EXTRA_2_OUTPUT
-  
-    
-    EXTRA_1_LAT = 0;
-    EXTRA_2_LAT = 0;
-
-    setAddress(DEFAULT_ADDRESS,CENTER);
-    //put_char('A');
-    
-    EXTRA_2_LAT = 1;
-    
-    int i;
-    
-    i = initSensor(CENTER, 1); // set long range mode (up to 2m)
-    //put_char('B');
-	if (i !=1 ){
-        put_string("ERROR in init center: ");
-        put_uint8(i);
-//		return 1; // problem - quit
-	}
-    i = 0;
-    
-    setAddress(DEFAULT_ADDRESS,LEFT);
-    //put_char('C');
-    EXTRA_1_LAT = 1;
-    
-    i = initSensor(LEFT, 1); // set long range mode (up to 2m)
-    //put_char('D');
-	if (i !=1 ){
-        put_string("ERROR in init left: ");
-        put_uint8(i);
-		//return 1; // problem - quit
-	}
-    i = 0;
-    
-    setAddress(DEFAULT_ADDRESS,RIGHT);
-    //put_char('E');
-    i = initSensor(RIGHT, 1); // set long range mode (up to 2m)
-    //put_char('F');
-	if (i !=1 ){
-        put_string("ERROR in init right: ");
-        put_uint8(i);
-	//	return 1; // problem - quit
-	}
-    i = 0;
-    EXTRA_1_INPUT
-    EXTRA_2_INPUT
-    
+int sensor_measure_ready(uint8_t dev_add){
+  return readReg(dev_add,SYSRANGE_START) & 0x01;
 }
 
 
-/* tofGetModel() */
 

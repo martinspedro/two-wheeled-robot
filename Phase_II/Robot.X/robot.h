@@ -61,6 +61,10 @@
 #define CLEAR_PID_IF CLEAR_TMR4_IF                  //!< Encapsulate PID Timer Clear Interrupt Flag Instruction
 
 
+#define LEFT 0x30       //!< Left distance sensor slave ID
+#define CENTER 0x32     //!< Center distance sensor slave ID
+#define RIGHT 0x34      //!< Right distance sensor slave ID
+
 /*******************************************************************************
  *                        FUNCTION HEADERS DEFINITION
  ******************************************************************************/
